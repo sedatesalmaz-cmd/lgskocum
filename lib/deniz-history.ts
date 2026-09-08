@@ -12,7 +12,12 @@ export const weeklyProgress: WeeklyProgress[] = [
   {label:'28 Ağu–4 Eyl',start:'2026-08-28',end:'2026-09-04',subjects:{Paragraf:{target:223,solved:168},Türkçe:{target:240,solved:240},Matematik:{target:275,solved:255},'Fen Bilimleri':{target:117,solved:117},İnkılap:{target:80,solved:80},'Din Kültürü':{target:40,solved:40}}},
 ];
 
+const turkceTopics = ['Sözcükte Anlam','Cümlede Anlam','Paragrafta Anlam','Deyimler ve Atasözleri','Söz Sanatları','Fiilimsiler','Fiilde Çatı','Cümlenin Öğeleri','Cümle Türleri','Yazım Kuralları','Noktalama İşaretleri','Anlatım Bozuklukları','Metin Türleri','Sözel Mantık / Görsel Okuma'];
+
 export const bookCompletions: BookCompletion[] = [
+  {subject:'Türkçe',book:'Fenomen 8-A Paragraf',completed:turkceTopics},
+  {subject:'Türkçe',book:'6-A Paragraf',completed:turkceTopics},
+  {subject:'Türkçe',book:'Kontak 7',completed:turkceTopics.slice(0,10)},
   {subject:'Türkçe',book:'Fenomen 8-A Soru Bankası',completed:['Fiilimsiler','Cümlenin Öğeleri']},
   {subject:'Matematik',book:'Fenomen 8-A Soru Bankası',completed:['Çarpanlar ve Katlar']},
   {subject:'Matematik',book:'Fenomen 8-B Soru Bankası',completed:['Çarpanlar ve Katlar']},
