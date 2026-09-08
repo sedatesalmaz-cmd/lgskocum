@@ -1,63 +1,59 @@
 export type CurriculumUnit = { name: string; topics: string[] };
-export type CurriculumSubject = {
-  id: string;
-  name: string;
-  shortName: string;
-  icon: string;
-  color: string;
-  units: CurriculumUnit[];
-};
+export type CurriculumSubject = { id: string; name: string; shortName: string; icon: string; color: string; units: CurriculumUnit[] };
 
 export const lgsCurriculum: CurriculumSubject[] = [
   { id: 'turkce', name: 'Türkçe', shortName: 'Türkçe', icon: 'Aa', color: '#ef725f', units: [
-    { name: 'Anlam Bilgisi', topics: ['Sözcükte Anlam', 'Cümlede Anlam', 'Paragrafta Konu ve Ana Düşünce', 'Paragrafta Yardımcı Düşünce', 'Paragrafın Yapısı'] },
-    { name: 'Dil Bilgisi', topics: ['Fiilimsiler', 'Cümlenin Ögeleri', 'Fiilde Çatı', 'Cümle Türleri', 'Anlatım Bozuklukları'] },
-    { name: 'Metin ve Muhakeme', topics: ['Metin Türleri', 'Söz Sanatları', 'Görsel, Grafik ve Tablo Yorumlama', 'Sözel Mantık'] },
-    { name: 'Yazım ve Noktalama', topics: ['Yazım Kuralları', 'Noktalama İşaretleri'] },
+    { name: 'İletişim ve Sosyal İlişkiler', topics: ['Genel Ağ', 'Sosyal Medya', 'Dijital İçerik Üretimi', 'Dijital Yenilikler'] },
+    { name: 'Vatan Sevgisi', topics: ['Atatürk, İstiklal Marşı, Millî İrade ve Millî Kimlik', 'Vatanseverlik, Gazilik, Şehitlik ve Ülke Varlıklarına Sahip Çıkma', 'Sarıkamış Harekâtı, Kut’ül Amare ve 15 Temmuz'] },
+    { name: 'Doğa ve İnsan', topics: ['Yaşadığımız Gezegen', 'Doğa Olayları ve Afetlere Karşı Önlemler', 'Sürdürülebilirlik ve İklim Krizi'] },
+    { name: 'Türk Hikâye Geleneği ve Destanları', topics: ['Türk Destanlarında Olağanüstü Öge, Motif ve Semboller', 'Türk Destanları ve Dede Korkut Hikâyeleri', 'Efsane, Halk Hikâyesi, Menkıbe ve Masal'] },
+    { name: 'Sanat ve Estetik', topics: ['Sanatın Doğuşu ve Gelişimi', 'Sanatın Farklı Dalları', 'Sanat Eseri Okuma', 'Dijital Sanat, Müzecilik ve Sanal Müze'] },
+    { name: 'Akademik Düşünme Dünyası', topics: ['Düşünme ve Düşünme Türleri', 'Bilim, Bilimsel Bilgi ve Bilimsel Etik', 'Proje Hazırlama Süreci'] },
+    { name: 'LGS Dil Bilgisi ve Anlam', topics: ['Sözcükte Anlam', 'Cümlede Anlam', 'Paragrafta Anlam', 'Fiilimsiler', 'Cümlenin Ögeleri', 'Fiilde Çatı', 'Cümle Türleri', 'Anlatım Bozuklukları', 'Metin Türleri', 'Söz Sanatları', 'Görsel, Grafik ve Tablo Yorumlama', 'Sözel Mantık', 'Yazım Kuralları', 'Noktalama İşaretleri'] },
   ]},
   { id: 'matematik', name: 'Matematik', shortName: 'Matematik', icon: 'π', color: '#7357c7', units: [
-    { name: 'Çarpanlar ve Katlar', topics: ['Pozitif Tam Sayıların Çarpanları', 'EBOB ve EKOK', 'Aralarında Asal Sayılar'] },
-    { name: 'Üslü İfadeler', topics: ['Tam Sayıların Kuvvetleri', 'Üslü İfadelerle İşlemler', 'Bilimsel Gösterim'] },
-    { name: 'Kareköklü İfadeler', topics: ['Karekök ve Tahmin', 'Kareköklü İfadelerle İşlemler', 'Gerçek Sayılar'] },
-    { name: 'Veri Analizi ve Olasılık', topics: ['Grafikler', 'Basit Olayların Olma Olasılığı'] },
-    { name: 'Cebir', topics: ['Cebirsel İfadeler ve Özdeşlikler', 'Doğrusal Denklemler', 'Eşitsizlikler'] },
-    { name: 'Geometri', topics: ['Üçgenler', 'Eşlik ve Benzerlik', 'Dönüşüm Geometrisi', 'Geometrik Cisimler'] },
+    { name: 'Çarpanlar ve Katlar & Üslü İfadeler', topics: ['Pozitif Tam Sayıların Çarpanları', 'EBOB ve EKOK', 'Aralarında Asal Sayılar', 'Tam Sayıların Tam Sayı Kuvvetleri', 'Üslü İfadeler ile İlgili Temel Kurallar', 'Ondalık Gösterimleri Çözümleme', 'Bilimsel Gösterim'] },
+    { name: 'Kareköklü İfadeler & Veri Analizi', topics: ['Tam Kare Sayılar ve Karekökleri', 'Tam Kare Olmayan Kareköklerin Bulunduğu Aralıklar', 'Kareköklü İfadeyi a√b Şeklinde Yazma', 'Kareköklü İfadelerde Çarpma ve Bölme', 'Kareköklü İfadelerde Toplama ve Çıkarma', 'Sonucu Doğal Sayı Yapan Çarpanlar', 'Ondalık İfadelerin Karekökleri', 'Gerçek Sayılar', 'Çizgi ve Sütun Grafikleri', 'Verilerin Farklı Gösterimleri'] },
+    { name: 'Basit Olayların Olma Olasılığı & Cebirsel İfadeler', topics: ['Basit Olayların Olma Olasılığı', 'Basit Cebirsel İfadeler ve Çarpma İşlemi', 'Özdeşlikler', 'Cebirsel İfadeleri Çarpanlara Ayırma'] },
+    { name: 'Doğrusal Denklemler & Eşitsizlikler', topics: ['Birinci Dereceden Bir Bilinmeyenli Denklemler', 'Koordinat Sistemi', 'Doğrusal İlişki Bulunan Değişkenler', 'Doğrusal Denklemlerin Grafiği', 'Doğrusal İlişki İçeren Gerçek Hayat Durumları', 'Eğim', 'Birinci Dereceden Bir Bilinmeyenli Eşitsizlikler'] },
+    { name: 'Üçgenler & Eşlik ve Benzerlik', topics: ['Üçgende Açıortay, Kenarortay ve Yükseklik', 'Üçgenlerin Kenarları Arasındaki İlişkiler', 'Kenar Uzunlukları ile Açı Ölçüleri Arasındaki İlişkiler', 'Üçgen Çizimi', 'Pisagor Bağıntısı', 'Eşlik ve Benzerlik'] },
+    { name: 'Dönüşüm Geometrisi & Geometrik Cisimler', topics: ['Öteleme', 'Yansıma', 'Çokgenlerin Öteleme ve Yansıma Görüntüleri', 'Dik Prizma', 'Dik Dairesel Silindirin Temel Elemanları ve Açınımı', 'Dik Dairesel Silindirin Yüzey Alanı', 'Dik Dairesel Silindirin Hacmi', 'Dik Piramit', 'Dik Koni'] },
   ]},
   { id: 'fen', name: 'Fen Bilimleri', shortName: 'Fen', icon: '⚗', color: '#238e89', units: [
-    { name: 'Mevsimler ve İklim', topics: ['Mevsimlerin Oluşumu', 'İklim ve Hava Hareketleri'] },
-    { name: 'DNA ve Genetik Kod', topics: ['DNA ve Genetik Kod', 'Kalıtım', 'Mutasyon ve Modifikasyon', 'Adaptasyon', 'Biyoteknoloji'] },
-    { name: 'Basınç', topics: ['Katı Basıncı', 'Sıvı Basıncı', 'Gaz Basıncı'] },
-    { name: 'Madde ve Endüstri', topics: ['Periyodik Sistem', 'Fiziksel ve Kimyasal Değişimler', 'Kimyasal Tepkimeler', 'Asitler ve Bazlar', 'Maddenin Isı ile Etkileşimi', 'Türkiye’de Kimya Endüstrisi'] },
-    { name: 'Basit Makineler', topics: ['Basit Makineler'] },
-    { name: 'Enerji Dönüşümleri ve Çevre Bilimi', topics: ['Besin Zinciri ve Enerji Akışı', 'Enerji Dönüşümleri', 'Madde Döngüleri ve Çevre Sorunları', 'Sürdürülebilir Kalkınma'] },
-    { name: 'Elektrik Yükleri ve Elektrik Enerjisi', topics: ['Elektrik Yükleri ve Elektriklenme', 'Elektrik Yüklü Cisimler', 'Elektrik Enerjisinin Dönüşümü'] },
+    { name: 'Mevsimler ve İklim', topics: ['Mevsimlerin Oluşumu', 'İklim ve Hava Olayları Arasındaki Fark', 'Hava Olayları', 'İklim', 'İklim Değişikliği'] },
+    { name: 'DNA ve Genetik Kod', topics: ['Nükleotid, Gen, DNA ve Kromozom İlişkisi', 'DNA’nın Yapısı', 'DNA’nın Kendini Eşlemesi', 'Kalıtım ve Kalıtımla İlgili Kavramlar', 'Tek Karakter Çaprazlamaları', 'Akraba Evliliklerinin Genetik Sonuçları', 'Mutasyon', 'Modifikasyon', 'Mutasyon ve Modifikasyon Arasındaki Fark', 'Adaptasyon', 'Genetik Mühendisliği ve Biyoteknoloji'] },
+    { name: 'Basınç', topics: ['Katı Basıncı', 'Sıvı Basıncı', 'Sıvı Basıncına Etki Eden Etmenler', 'Gazların Basıncı', 'Basınç Özelliklerinden Yararlanan Teknolojiler'] },
+    { name: 'Madde ve Endüstri', topics: ['Periyodik Sistem', 'Periyotlar ve Gruplar', 'Metaller, Ametaller ve Yarı Metaller', 'Fiziksel ve Kimyasal Değişimler', 'Kimyasal Tepkimeler', 'Asit ve Bazların Genel Özellikleri', 'pH Değerleri', 'Asit Yağmurları', 'Isı ve Sıcaklık', 'Öz Isı', 'Hâl Değişimleri', 'Türkiye’de Kimya Endüstrisi'] },
+    { name: 'Basit Makineler', topics: ['Basit Makinelerin Sağladığı Avantajlar', 'Makaralar ve Palangalar', 'Kaldıraçlar', 'Eğik Düzlem', 'Çıkrık', 'Bileşik Makine Tasarlama'] },
+    { name: 'Enerji Dönüşümleri ve Çevre Bilimi', topics: ['Besin Zinciri ve Enerji Akışı', 'Ekoloji Piramitleri ve Biyolojik Birikim', 'Fotosentez', 'Fotosentez Hızını Etkileyen Faktörler', 'Canlılarda Solunum', 'Madde Döngüleri', 'Küresel İklim Değişikliği', 'Ekolojik Ayak İzi', 'Kaynakların Tasarruflu Kullanımı', 'Geri Dönüşüm'] },
+    { name: 'Elektrik Yükleri ve Elektrik Enerjisi', topics: ['Elektriklenmenin Uygulama Alanları', 'Elektrik Yükleri ve Etkileşimleri', 'Elektriklenme Çeşitleri', 'Cisimlerin Elektrik Yükleri', 'Topraklama', 'Elektrik Enerjisinin Isı, Işık ve Harekete Dönüşümü', 'Güç Santrallerinde Elektrik Üretimi', 'Elektrik Enerjisinin Bilinçli Kullanımı'] },
   ]},
   { id: 'inkilap', name: 'T.C. İnkılap Tarihi ve Atatürkçülük', shortName: 'İnkılap', icon: '✦', color: '#d59a22', units: [
     { name: 'Bir Kahraman Doğuyor', topics: ['Avrupa’daki Gelişmeler ve Osmanlı Devleti', 'Mustafa Kemal’in Çocukluk ve Öğrenim Hayatı', 'Mustafa Kemal’in Askerlik Hayatı'] },
-    { name: 'Millî Uyanış', topics: ['I. Dünya Savaşı ve Osmanlı Devleti', 'Mondros Ateşkes Antlaşması ve İşgaller', 'Kuvâ-yı Millîye ve Cemiyetler', 'Millî Mücadele’nin Hazırlık Dönemi', 'Misakımillî ve TBMM'] },
-    { name: 'Ya İstiklal Ya Ölüm!', topics: ['Doğu ve Güney Cepheleri', 'Batı Cephesi', 'Maarif Kongresi ve Tekâlif-i Millîye', 'Mudanya ve Lozan'] },
+    { name: 'Millî Uyanış: Bağımsızlık Yolunda Atılan Adımlar', topics: ['I. Dünya Savaşı ve Osmanlı Devleti', 'Mondros Ateşkes Antlaşması ve İşgaller', 'Kuvâ-yı Millîye ve Cemiyetler', 'Millî Mücadele’nin Hazırlık Dönemi', 'Misakımillî ve TBMM'] },
+    { name: 'Millî Bir Destan: Ya İstiklal Ya Ölüm!', topics: ['Doğu ve Güney Cepheleri', 'Batı Cephesi', 'Maarif Kongresi ve Tekâlif-i Millîye', 'Mudanya Ateşkes Antlaşması ve Lozan Barış Antlaşması'] },
     { name: 'Atatürkçülük ve Çağdaşlaşan Türkiye', topics: ['Atatürk İlkeleri', 'Siyasi ve Hukuki İnkılaplar', 'Eğitim, Kültür ve Toplumsal İnkılaplar', 'Ekonomi Alanındaki Gelişmeler'] },
     { name: 'Demokratikleşme Çabaları', topics: ['Çok Partili Hayata Geçiş Denemeleri', 'Cumhuriyet’e Yönelik Tehditler'] },
     { name: 'Atatürk Dönemi Türk Dış Politikası', topics: ['Türk Dış Politikasının Temel İlkeleri', 'Dış Politikadaki Gelişmeler', 'Hatay’ın Ana Vatana Katılması'] },
-    { name: 'Atatürk’ün Ölümü ve Sonrası', topics: ['Atatürk’ün Ölümü ve Yankıları', 'İkinci Dünya Savaşı ve Türkiye', 'Çok Partili Hayata Geçiş'] },
+    { name: 'Atatürk’ün Ölümü ve Sonrası', topics: ['Atatürk’ün Ölümü ve Ölümünün Yankıları', 'Atatürk’ün Eserleri', 'İkinci Dünya Savaşı ve Türkiye’nin Denge Siyaseti', 'İkinci Dünya Savaşı’nın Türkiye’ye Etkileri', 'Türkiye’de Çok Partili Siyasi Hayata Geçiş'] },
   ]},
   { id: 'din', name: 'Din Kültürü ve Ahlak Bilgisi', shortName: 'Din', icon: '☾', color: '#5377c6', units: [
-    { name: 'Kader İnancı', topics: ['Kader ve Kaza İnancı', 'İnsanın İradesi ve Kader', 'Kaderle İlgili Kavramlar', 'Hz. Musa'] },
-    { name: 'Zekât ve Sadaka', topics: ['Paylaşma ve Yardımlaşma', 'Zekât ve Sadaka İbadeti', 'Hz. Şuayb', 'Maûn Suresi'] },
-    { name: 'Din ve Hayat', topics: ['Din, Birey ve Toplum', 'Dinin Temel Gayesi'] },
-    { name: 'Hz. Muhammed’in Örnekliği', topics: ['Doğruluğu ve Güvenilirliği', 'Merhameti, Affediciliği ve İstişaresi', 'Hakkı Gözetmesi', 'Kureyş Suresi'] },
-    { name: 'Kur’an-ı Kerim ve Özellikleri', topics: ['İslam Dininin Temel Kaynakları', 'Kur’an’ın Ana Konuları', 'Kur’an’ın Temel Özellikleri', 'Hz. Nuh'] },
+    { name: 'Kader İnancı', topics: ['Kader ve Kaza İnancı', 'İnsanın İradesi ve Kader', 'Kaderle İlgili Kavramlar', 'Bir Peygamber Tanıyorum: Hz. Musa', 'Bir Ayet Tanıyorum: Ayetelkürsi ve Anlamı'] },
+    { name: 'Zekât ve Sadaka', topics: ['İslam’ın Paylaşmaya ve Yardımlaşmaya Verdiği Önem', 'Zekât ve Sadaka İbadeti', 'Zekât ve Sadakanın Bireysel ve Toplumsal Faydaları', 'Bir Peygamber Tanıyorum: Hz. Şuayb', 'Bir Sure Tanıyorum: Maun Suresi ve Anlamı'] },
+    { name: 'Din ve Hayat', topics: ['Din, Birey ve Toplum', 'Dinin Temel Gayesi', 'Bir Peygamber Tanıyorum: Hz. Yusuf', 'Bir Sure Tanıyorum: Asr Suresi ve Anlamı'] },
+    { name: 'Hz. Muhammed’in Örnekliği', topics: ['Doğruluğu ve Güvenilir Kişiliği', 'Merhametli ve Affedici Oluşu', 'İstişareye Önem Vermesi', 'Davasındaki Cesaret ve Kararlılığı', 'Hakkı Gözetmedeki Hassasiyeti', 'İnsanlara Değer Vermesi', 'Bir Sure Tanıyorum: Kureyş Suresi ve Anlamı'] },
+    { name: 'Kur’an-ı Kerim ve Özellikleri', topics: ['İslam Dininin Temel Kaynakları', 'Kur’an-ı Kerim’in Ana Konuları', 'Kur’an-ı Kerim’in Temel Özellikleri', 'Bir Peygamber Tanıyorum: Hz. Nuh'] },
   ]},
   { id: 'ingilizce', name: 'İngilizce', shortName: 'İngilizce', icon: 'EN', color: '#a2589e', units: [
-    { name: 'Unit 1 · Friendship', topics: ['Accepting and Refusing', 'Apologizing and Giving Explanations'] },
-    { name: 'Unit 2 · Teen Life', topics: ['Daily Routines', 'Likes and Dislikes'] },
-    { name: 'Unit 3 · In The Kitchen', topics: ['Describing Processes', 'Making Simple Inquiries'] },
-    { name: 'Unit 4 · On The Phone', topics: ['Telephone Conversations', 'Leaving a Message'] },
-    { name: 'Unit 5 · The Internet', topics: ['Internet Habits', 'Online Safety'] },
-    { name: 'Unit 6 · Adventures', topics: ['Preferences', 'Comparisons'] },
-    { name: 'Unit 7 · Tourism', topics: ['Describing Places', 'Experiences'] },
-    { name: 'Unit 8 · Chores', topics: ['Responsibilities', 'Obligations'] },
-    { name: 'Unit 9 · Science', topics: ['Scientific Achievements', 'Past Events'] },
-    { name: 'Unit 10 · Natural Forces', topics: ['Natural Disasters', 'Predictions'] },
+    { name: 'Unit 1: Friendship', topics: ['Accepting and Refusing', 'Apologizing and Giving Explanations'] },
+    { name: 'Unit 2: Teen Life', topics: ['Daily Routines', 'Likes and Dislikes'] },
+    { name: 'Unit 3: In the Kitchen', topics: ['Describing Processes', 'Making Simple Inquiries'] },
+    { name: 'Unit 4: On the Phone', topics: ['Telephone Conversations', 'Leaving a Message'] },
+    { name: 'Unit 5: The Internet', topics: ['Internet Habits', 'Online Safety'] },
+    { name: 'Unit 6: Adventures', topics: ['Preferences', 'Comparisons'] },
+    { name: 'Unit 7: Tourism', topics: ['Describing Places', 'Experiences'] },
+    { name: 'Unit 8: Chores', topics: ['Responsibilities', 'Obligations'] },
+    { name: 'Unit 9: Science', topics: ['Scientific Achievements', 'Past Events'] },
+    { name: 'Unit 10: Natural Forces', topics: ['Natural Disasters', 'Predictions'] },
   ]},
 ];
