@@ -9,6 +9,7 @@ import {currentWeekAssignments} from '@/lib/current-week-plan';
 import {QuestionCatalog} from '@/components/question-catalog';
 import {StudyEntryModal,type StudyResult} from '@/components/study-entry-modal';
 import {DailyCoachDashboard} from '@/components/daily-coach-dashboard';
+import {AccessGate} from '@/components/access-gate';
 
 const subjects=[['Matematik','π','#7357c7','#eee9fb',0],['Türkçe','Aa','#ef725f','#ffebe6',0],['Fen','⚗','#238e89','#dff4ef',0],['İnkılap','✦','#d59a22','#fff2cf',0]] as const;
 const coaches=[['MT','Matematik','Merve T.','Yeni değerlendirme','#7357c7'],['TÖ','Türkçe','Tolga Ö.','Rapor hazır','#ef725f'],['SA','Fen Bilimleri','Selin A.','İnceliyor','#238e89'],['EK','İnkılap Tarihi','Eren K.','Rapor hazır','#d59a22'],['DY','Din Kültürü','Derya Y.','Rapor hazır','#5377c6'],['CE','İngilizce','Cansu E.','Yeni değerlendirme','#a2589e']] as const;
@@ -23,7 +24,7 @@ export default function Home(){
  const todayTarget=todayAssignments.reduce((sum,item)=>sum+item.questionCount,0);
  useEffect(()=>{fetch(`/api/study-results?date=${todayKey}`).then(r=>r.json()).then((data:{results?:StudyResult[]})=>setStudyResults(Object.fromEntries((data.results??[]).filter(x=>x.assignmentId).map(x=>[x.assignmentId,x])))).catch(()=>{})},[todayKey]);
  const save=()=>{setSaved(true);setTimeout(()=>{setSaved(false);setOpen(false)},900)};
- return <main className="shell">
+ return <main className="shell"><AccessGate/>
   <aside className="side"><a className="brand" href="#"><span>R</span></a><nav><button className={section==='today'?'active':''} onClick={()=>setSection('today')}><House/><i>Bugün</i></button><button className={(view==='student'?section==='topics':section==='assignments')?'active':''} onClick={()=>setSection(view==='student'?'topics':'assignments')}><Target/><i>{view==='student'?'Konularım':'Ödev Ver'}</i></button><button className={section==='progress'?'active':''} onClick={()=>setSection('progress')}><BarChart3/><i>Gelişim</i></button>{view==='adult'&&<button className={section==='catalog'?'active':''} onClick={()=>setSection('catalog')}><BookCheck/><i>Soru Kataloğu</i></button>}<button><UsersRound/><i>Koçlarım</i></button></nav><button className="mini">D</button></aside>
   <section className="workspace"><header className="top"><button className="hamb"><Menu/></button><div className="switch"><button className={view==='student'?'on':''} onClick={()=>{setView('student');setSection('today')}}>Deniz</button><button className={view==='adult'?'on':''} onClick={()=>{setView('adult');setSection('today')}}>Yetişkin & Koç</button></div><div className="topright"><span><Flame/> 0 günlük seri</span><b>S</b></div></header>
   {section==='progress'?<ProgressDashboard/>:section==='catalog'&&view==='adult'?<QuestionCatalog/>:view==='student'?(section==='topics'?<TopicsWorkspace/>:<div className="page">
