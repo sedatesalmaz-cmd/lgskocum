@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { BookOpen, CalendarDays, Check } from 'lucide-react';
 import { BookPicker } from '@/components/book-picker';
 import { lgsCurriculum } from '@/lib/lgs-curriculum';
+import { isWeeklyTestBook, unitsForBook } from '@/lib/book-units';
 import { WeeklyReportPanel } from '@/components/weekly-report-panel';
 export type Assignment = {
   id: number;
@@ -25,10 +26,12 @@ export function CoachWorkspace({
   const [subjectId, setSubjectId] = useState('matematik');
   const subject = lgsCurriculum.find((x) => x.id === subjectId)!;
   const [unitName, setUnitName] = useState(subject.units[0].name);
+  const [book, setBook] = useState('');
+  const weeklyTest = isWeeklyTestBook(book);
+  const availableUnits = unitsForBook(subjectId, book);
   const unit =
     subject.units.find((x) => x.name === unitName) ?? subject.units[0];
   const [topic, setTopic] = useState(unit.topics[0]);
-  const [book, setBook] = useState('');
   const [dueDate, setDueDate] = useState(new Date().toISOString().slice(0, 10));
   const [questionCount, setQuestionCount] = useState(20);
   const [note, setNote] = useState('');
@@ -41,9 +44,22 @@ export function CoachWorkspace({
     setBook('');
   };
   const chooseUnit = (name: string) => {
+    if (weeklyTest) {
+      setUnitName(name);
+      setTopic('Haftalık deneme');
+      return;
+    }
     const next = subject.units.find((x) => x.name === name)!;
     setUnitName(name);
     setTopic(next.topics[0]);
+  };
+  const chooseBook = (name: string) => {
+    setBook(name);
+    const nextUnits = unitsForBook(subjectId, name);
+    setUnitName(nextUnits[0] ?? subject.units[0].name);
+    setTopic(
+      isWeeklyTestBook(name) ? 'Haftalık deneme' : subject.units[0].topics[0],
+    );
   };
   const add = () => {
     if (questionCount < 1) return;
@@ -53,7 +69,7 @@ export function CoachWorkspace({
       subjectId,
       subject: subject.name,
       book: book || 'Kitap belirtilmedi',
-      unit: unit.name,
+      unit: unitName,
       topic,
       questionCount,
       note,
@@ -99,27 +115,36 @@ export function CoachWorkspace({
             </label>
             <label>
               Kitap
-              <BookPicker subjectId={subjectId} value={book} onChange={setBook} />
+              <BookPicker
+                subjectId={subjectId}
+                value={book}
+                onChange={chooseBook}
+              />
             </label>
             <label>
               Ünite
               <select
-                value={unit.name}
+                value={unitName}
                 onChange={(e) => chooseUnit(e.target.value)}
               >
-                {subject.units.map((x) => (
-                  <option key={x.name}>{x.name}</option>
+                {availableUnits.map((name) => (
+                  <option key={name}>{name}</option>
                 ))}
               </select>
             </label>
-            <label>
-              Konu
-              <select value={topic} onChange={(e) => setTopic(e.target.value)}>
-                {unit.topics.map((x) => (
-                  <option key={x}>{x}</option>
-                ))}
-              </select>
-            </label>
+            {!weeklyTest && (
+              <label>
+                Konu
+                <select
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                >
+                  {unit.topics.map((x) => (
+                    <option key={x}>{x}</option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label>
               <span>
                 <CalendarDays /> Teslim günü

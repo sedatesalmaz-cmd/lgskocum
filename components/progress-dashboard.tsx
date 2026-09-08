@@ -8,10 +8,13 @@ import {
   Save,
   Target,
   TrendingUp,
+  Medal,
+  Trophy,
 } from 'lucide-react';
 import { weeklyProgress } from '@/lib/deniz-history';
 import { bookCatalog, booksForSubject } from '@/lib/book-catalog';
 import { lgsCurriculum } from '@/lib/lgs-curriculum';
+import { unitsForBook } from '@/lib/book-units';
 type ProgressItem = {
   id: number;
   subjectId: string;
@@ -100,6 +103,30 @@ export function ProgressDashboard({ canEdit = false }: { canEdit?: boolean }) {
   };
   const tabs = bookCatalog.map((x) => x.subjectId);
   const shown = items.filter((x) => x.subjectId === subjectId);
+  const completedBooks = [
+    ...new Set(items.map((x) => `${x.subjectId}|||${x.book}`)),
+  ].flatMap((key) => {
+    const [id, name] = key.split('|||');
+    const required = unitsForBook(id, name);
+    const rows = items.filter((x) => x.subjectId === id && x.book === name);
+    return required.length > 0 &&
+      required.every((unitName) =>
+        rows.some((row) => row.unit === unitName && row.status === 'completed'),
+      )
+      ? [
+          {
+            subjectId: id,
+            book: name,
+            completedAt:
+              rows
+                .map((x) => x.updatedAt)
+                .sort()
+                .at(-1) ?? '',
+          },
+        ]
+      : [];
+  });
+  const unitOptions = unitsForBook(subjectId, book);
   return (
     <div className="page progress-page">
       <div className="welcome">
@@ -178,6 +205,47 @@ export function ProgressDashboard({ canEdit = false }: { canEdit?: boolean }) {
           ))}
         </div>
       </section>
+      {!canEdit && completedBooks.length > 0 && (
+        <section className="book-award">
+          <span>
+            <Medal />
+          </span>
+          <div>
+            <p className="eyebrow">BÜYÜK BAŞARI</p>
+            <h2>Bir kitabı daha tamamladın!</h2>
+            <p>
+              <b>{completedBooks.at(-1)?.book}</b> artık başarı koleksiyonunda.
+              Disiplinin seni hedefe taşıyor!
+            </p>
+          </div>
+          <Trophy />
+        </section>
+      )}
+      {canEdit && completedBooks.length > 0 && (
+        <section className="completed-book-log">
+          <div className="progress-title">
+            <div>
+              <p className="eyebrow">TAMAMLANAN KİTAPLAR</p>
+              <h2>Başarı kayıtları</h2>
+            </div>
+            <Medal />
+          </div>
+          {completedBooks.map((item) => (
+            <article key={`${item.subjectId}-${item.book}`}>
+              <CheckCircle2 />
+              <span>
+                <b>{item.book}</b>
+                <small>
+                  {lgsCurriculum.find((x) => x.id === item.subjectId)?.name} ·{' '}
+                  {item.completedAt
+                    ? new Date(item.completedAt).toLocaleDateString('tr-TR')
+                    : 'Tamamlandı'}
+                </small>
+              </span>
+            </article>
+          ))}
+        </section>
+      )}
       <section className="books-card">
         <div className="progress-title">
           <div>
@@ -208,7 +276,13 @@ export function ProgressDashboard({ canEdit = false }: { canEdit?: boolean }) {
           <div className="progress-editor">
             <label>
               Kitap
-              <select value={book} onChange={(e) => setBook(e.target.value)}>
+              <select
+                value={book}
+                onChange={(e) => {
+                  setBook(e.target.value);
+                  setUnit('');
+                }}
+              >
                 <option value="">Kitap seçin</option>
                 {booksForSubject(subjectId).map((x) => (
                   <option key={x}>{x}</option>
@@ -219,8 +293,8 @@ export function ProgressDashboard({ canEdit = false }: { canEdit?: boolean }) {
               Ünite
               <select value={unit} onChange={(e) => setUnit(e.target.value)}>
                 <option value="">Ünite seçin</option>
-                {subject.units.map((x) => (
-                  <option key={x.name}>{x.name}</option>
+                {unitOptions.map((name) => (
+                  <option key={name}>{name}</option>
                 ))}
               </select>
             </label>
