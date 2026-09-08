@@ -1,27 +1,28 @@
 'use client';
 import {useState} from 'react';
-import {ArrowRight,BarChart3,BookOpen,Camera,Check,ChevronRight,Clock3,Flame,GraduationCap,House,ImagePlus,Lightbulb,Menu,MessageCircleMore,Play,Plus,Sparkles,Star,Target,TrendingUp,UsersRound,X} from 'lucide-react';
+import {ArrowRight,BarChart3,BookCheck,BookOpen,Camera,Check,ChevronRight,Clock3,Flame,GraduationCap,House,ImagePlus,Lightbulb,Menu,MessageCircleMore,Play,Plus,Sparkles,Star,Target,TrendingUp,UsersRound,X} from 'lucide-react';
 import {TopicsWorkspace} from '@/components/topics-workspace';
 import {CoachWorkspace,type Assignment} from '@/components/coach-workspace';
 import {WrongQuestionModal} from '@/components/wrong-question-modal';
 import {ProgressDashboard} from '@/components/progress-dashboard';
 import {currentWeekAssignments} from '@/lib/current-week-plan';
+import {QuestionCatalog} from '@/components/question-catalog';
 
 const subjects=[['Matematik','π','#7357c7','#eee9fb',0],['Türkçe','Aa','#ef725f','#ffebe6',0],['Fen','⚗','#238e89','#dff4ef',0],['İnkılap','✦','#d59a22','#fff2cf',0]] as const;
 const coaches=[['MT','Matematik','Merve T.','Yeni değerlendirme','#7357c7'],['TÖ','Türkçe','Tolga Ö.','Rapor hazır','#ef725f'],['SA','Fen Bilimleri','Selin A.','İnceliyor','#238e89'],['EK','İnkılap Tarihi','Eren K.','Rapor hazır','#d59a22'],['DY','Din Kültürü','Derya Y.','Rapor hazır','#5377c6'],['CE','İngilizce','Cansu E.','Yeni değerlendirme','#a2589e']] as const;
 function Ring({value}:{value:number}){return <div className="ring" style={{'--value':`${value*3.6}deg`} as React.CSSProperties}><div><strong>{value}</strong><span>%</span></div></div>}
 
 export default function Home(){
- const [wrongOpen,setWrongOpen]=useState(false); const [view,setView]=useState<'student'|'adult'>('student'); const [section,setSection]=useState<'today'|'topics'|'assignments'|'progress'>('today'); const [open,setOpen]=useState(false); const [saved,setSaved]=useState(false); const [count,setCount]=useState(0); const [wrong,setWrong]=useState(0);
+ const [wrongOpen,setWrongOpen]=useState(false); const [view,setView]=useState<'student'|'adult'>('student'); const [section,setSection]=useState<'today'|'topics'|'assignments'|'progress'|'catalog'>('today'); const [open,setOpen]=useState(false); const [saved,setSaved]=useState(false); const [count,setCount]=useState(0); const [wrong,setWrong]=useState(0);
  const [assignments,setAssignments]=useState<Assignment[]>(currentWeekAssignments);
  const todayKey=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Istanbul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  const todayAssignments=assignments.filter(item=>item.dueDate===todayKey);
  const todayTarget=todayAssignments.reduce((sum,item)=>sum+item.questionCount,0);
  const save=()=>{setSaved(true);setTimeout(()=>{setSaved(false);setOpen(false)},900)};
  return <main className="shell">
-  <aside className="side"><a className="brand" href="#"><span>R</span></a><nav><button className={section==='today'?'active':''} onClick={()=>setSection('today')}><House/><i>Bugün</i></button><button className={(view==='student'?section==='topics':section==='assignments')?'active':''} onClick={()=>setSection(view==='student'?'topics':'assignments')}><Target/><i>{view==='student'?'Konularım':'Ödev Ver'}</i></button><button className={section==='progress'?'active':''} onClick={()=>setSection('progress')}><BarChart3/><i>Gelişim</i></button><button><UsersRound/><i>Koçlarım</i></button></nav><button className="mini">D</button></aside>
+  <aside className="side"><a className="brand" href="#"><span>R</span></a><nav><button className={section==='today'?'active':''} onClick={()=>setSection('today')}><House/><i>Bugün</i></button><button className={(view==='student'?section==='topics':section==='assignments')?'active':''} onClick={()=>setSection(view==='student'?'topics':'assignments')}><Target/><i>{view==='student'?'Konularım':'Ödev Ver'}</i></button><button className={section==='progress'?'active':''} onClick={()=>setSection('progress')}><BarChart3/><i>Gelişim</i></button>{view==='adult'&&<button className={section==='catalog'?'active':''} onClick={()=>setSection('catalog')}><BookCheck/><i>Soru Kataloğu</i></button>}<button><UsersRound/><i>Koçlarım</i></button></nav><button className="mini">D</button></aside>
   <section className="workspace"><header className="top"><button className="hamb"><Menu/></button><div className="switch"><button className={view==='student'?'on':''} onClick={()=>{setView('student');setSection('today')}}>Deniz</button><button className={view==='adult'?'on':''} onClick={()=>{setView('adult');setSection('today')}}>Yetişkin & Koç</button></div><div className="topright"><span><Flame/> 0 günlük seri</span><b>S</b></div></header>
-  {section==='progress'?<ProgressDashboard/>:view==='student'?(section==='topics'?<TopicsWorkspace/>:<div className="page">
+  {section==='progress'?<ProgressDashboard/>:section==='catalog'&&view==='adult'?<QuestionCatalog/>:view==='student'?(section==='topics'?<TopicsWorkspace/>:<div className="page">
    <div className="welcome"><div><p className="eyebrow">4–10 EYLÜL HAFTASI</p><h1>Selam Deniz! <span>Bugünkü çalışma rotan hazır.</span></h1></div></div>
    <section className="hero"><article className="daily"><div className="dailycopy"><span className="pill"><Sparkles/> BUGÜNÜN HEDEFİ</span><h2>{todayAssignments.length>0?<>Bugün {todayAssignments.length} görevde<br/>{todayTarget} soru seni bekliyor.</>:<>Bugün için atanmış<br/>bir çalışma bulunmuyor.</>}</h2><p>{todayAssignments.length>0?'Görevlerini tamamladıkça ilerlemen burada görünecek.':'Haftalık plandaki diğer günleri yetişkin ve koç alanından görebilirsin.'}</p></div><div className="dailyprogress"><Ring value={0}/><b>0 / {todayTarget} soru</b><small>{todayAssignments.length>0?`${todayTarget} soru kaldı`:'Bugün dinlenme günü'}</small></div></article>
    <article className="note"><div className="notehead"><span className="coachavatar">—</span><div><small>Koç değerlendirmesi</small><b>Henüz değerlendirme yok</b></div><MessageCircleMore/></div><blockquote>İlk çalışma verileri girildiğinde koç değerlendirmeleri burada görünecek.</blockquote></article></section>
