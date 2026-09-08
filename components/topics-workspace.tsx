@@ -27,10 +27,9 @@ type Entry = {
 export function TopicsWorkspace() {
   const [subjectId, setSubjectId] = useState('matematik');
   const subject = lgsCurriculum.find((item) => item.id === subjectId)!;
-  const [unitName, setUnitName] = useState(subject.units[0].name);
-  const unit =
-    subject.units.find((item) => item.name === unitName) ?? subject.units[0];
-  const [topic, setTopic] = useState(unit.topics[0]);
+  const [unitName, setUnitName] = useState('');
+  const unit = subject.units.find((item) => item.name === unitName);
+  const [topic, setTopic] = useState('');
   const [book, setBook] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [total, setTotal] = useState(20);
@@ -47,21 +46,24 @@ export function TopicsWorkspace() {
   );
 
   const chooseSubject = (id: string) => {
-    const nextSubject = lgsCurriculum.find((item) => item.id === id)!;
     setSubjectId(id);
-    setUnitName(nextSubject.units[0].name);
-    setTopic(nextSubject.units[0].topics[0]);
+    setUnitName('');
+    setTopic('');
     setBook('');
   };
 
   const chooseUnit = (name: string) => {
-    const nextUnit = subject.units.find((item) => item.name === name)!;
+    if (unitName === name) {
+      setUnitName('');
+      setTopic('');
+      return;
+    }
     setUnitName(name);
-    setTopic(nextUnit.topics[0]);
+    setTopic('');
   };
 
   const saveEntry = () => {
-    if (!topic || total < 1 || wrong + blank > total) return;
+    if (!unit || !topic || total < 1 || wrong + blank > total) return;
     setEntries((current) => [
       {
         id: Date.now(),
@@ -125,7 +127,7 @@ export function TopicsWorkspace() {
             {subject.units.map((item) => (
               <article
                 key={item.name}
-                className={item.name === unit.name ? 'open' : ''}
+                className={item.name === unitName ? 'open' : ''}
               >
                 <button
                   className="unit-button"
@@ -137,7 +139,7 @@ export function TopicsWorkspace() {
                   </span>
                   <ChevronRight />
                 </button>
-                {item.name === unit.name && (
+                {item.name === unitName && (
                   <div className="topic-list">
                     {item.topics.map((itemTopic) => (
                       <button
@@ -162,7 +164,7 @@ export function TopicsWorkspace() {
           </div>
         </section>
 
-        <aside className="entry-panel">
+        {unit && topic ? <aside className="entry-panel">
           <span
             className="entry-icon"
             style={{ background: `${subject.color}18`, color: subject.color }}
@@ -213,7 +215,12 @@ export function TopicsWorkspace() {
           >
             <Plus /> Çalışmayı ekle
           </button>
-        </aside>
+        </aside> : <aside className="entry-panel entry-panel-empty">
+          <span className="entry-icon" style={{ background: `${subject.color}18`, color: subject.color }}>{subject.icon}</span>
+          <p className="eyebrow">ÇALIŞMA GİRİŞİ</p>
+          <h2>Önce bir konu seç</h2>
+          <p className="entry-unit">Üniteyi aç, çalıştığın konuya dokun. Giriş alanı burada hazır olacak.</p>
+        </aside>}
       </div>
 
       {entries.length > 0 && (
