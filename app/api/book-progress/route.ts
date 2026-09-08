@@ -2,12 +2,7 @@ import { NextResponse } from 'next/server';
 import { env } from 'cloudflare:workers';
 import { requireMember } from '@/lib/server-auth';
 const db = (env as unknown as { DB: D1Database }).DB;
-const allowed = new Set([
-  'not_started',
-  'in_progress',
-  'completed',
-  'review_needed',
-]);
+const allowed = new Set(['in_progress', 'completed', 'review_needed']);
 const seeds = [
   ['turkce', 'Türkçe', 'Fenomen 8-A Paragraf', 'LGS Dil Bilgisi ve Anlam'],
   ['turkce', 'Türkçe', '6-A Paragraf', 'LGS Dil Bilgisi ve Anlam'],
@@ -61,7 +56,7 @@ const seeds = [
 async function ensure() {
   await db
     .prepare(
-      `CREATE TABLE IF NOT EXISTS book_unit_progress (id INTEGER PRIMARY KEY AUTOINCREMENT,subject_id TEXT NOT NULL,subject TEXT NOT NULL,book TEXT NOT NULL,unit TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'not_started',progress INTEGER NOT NULL DEFAULT 0,updated_by TEXT NOT NULL DEFAULT 'system',created_at TEXT NOT NULL,updated_at TEXT NOT NULL)`,
+      `CREATE TABLE IF NOT EXISTS book_unit_progress (id INTEGER PRIMARY KEY AUTOINCREMENT,subject_id TEXT NOT NULL,subject TEXT NOT NULL,book TEXT NOT NULL,unit TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'in_progress',progress INTEGER NOT NULL DEFAULT 0,updated_by TEXT NOT NULL DEFAULT 'system',created_at TEXT NOT NULL,updated_at TEXT NOT NULL)`,
     )
     .run();
   await db
@@ -69,6 +64,7 @@ async function ensure() {
       'CREATE UNIQUE INDEX IF NOT EXISTS uq_book_unit_progress ON book_unit_progress(subject_id,book,unit)',
     )
     .run();
+  await db.prepare("UPDATE book_unit_progress SET status='in_progress' WHERE status='not_started'").run();
   const row = await db
     .prepare('SELECT COUNT(*) count FROM book_unit_progress')
     .first<{ count: number }>();
@@ -133,12 +129,7 @@ export async function POST(request: Request) {
       { error: 'Eksik veya geçersiz bilgi.' },
       { status: 400 },
     );
-  const progress =
-    body.status === 'completed'
-      ? 100
-      : body.status === 'not_started'
-        ? 0
-        : Math.max(0, Math.min(99, Number(body.progress ?? 50)));
+  const progress = body.status === 'completed' ? 100 : Math.max(0, Math.min(99, Number(body.progress ?? 50)));
   const now = new Date().toISOString();
   await db
     .prepare(

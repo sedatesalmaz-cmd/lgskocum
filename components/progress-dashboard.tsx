@@ -18,7 +18,7 @@ type ProgressItem = {
   subject: string;
   book: string;
   unit: string;
-  status: 'not_started' | 'in_progress' | 'completed' | 'review_needed';
+  status: 'in_progress' | 'completed' | 'review_needed';
   progress: number;
   updatedBy: string;
   updatedAt: string;
@@ -42,7 +42,6 @@ const colors: Record<string, string> = {
   İngilizce: '#a2589e',
 };
 const labels = {
-  not_started: 'Başlanmadı',
   in_progress: 'Devam ediyor',
   completed: 'Tamamlandı',
   review_needed: 'Tekrar gerekli',

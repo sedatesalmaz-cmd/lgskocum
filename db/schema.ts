@@ -73,7 +73,7 @@ export const bookUnitProgress = sqliteTable(
     subject: text('subject').notNull(),
     book: text('book').notNull(),
     unit: text('unit').notNull(),
-    status: text('status').notNull().default('not_started'),
+    status: text('status').notNull().default('in_progress'),
     progress: integer('progress').notNull().default(0),
     updatedBy: text('updated_by').notNull().default('system'),
     createdAt: text('created_at').notNull(),
