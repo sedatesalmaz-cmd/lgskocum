@@ -132,6 +132,12 @@ export default function Home() {
     (item) => studyResults[item.id],
   ).length;
   useEffect(() => {
+    fetch('/api/assignments')
+      .then((r) => r.json())
+      .then((data: { assignments?: Assignment[] }) => {
+        if (data.assignments?.length) setAssignments(data.assignments);
+      })
+      .catch(() => {});
     fetch(`/api/study-results?from=${weekAgoKey}&to=${todayKey}`)
       .then((r) => r.json())
       .then((data: { results?: StudyResult[] }) =>
@@ -145,6 +151,18 @@ export default function Home() {
       )
       .catch(() => {});
   }, [todayKey, weekAgoKey]);
+  const addAssignment = async (item: Omit<Assignment, 'id'>) => {
+    const response = await fetch('/api/assignments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item),
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { assignment?: Assignment };
+    if (!data.assignment) return null;
+    setAssignments((current) => [data.assignment!, ...current]);
+    return data.assignment;
+  };
   const undoResult = async (assignmentId: number) => {
     const response = await fetch(
       `/api/study-results?assignmentId=${assignmentId}`,
@@ -544,10 +562,7 @@ export default function Home() {
             </div>
           )
         ) : section === 'assignments' ? (
-          <CoachWorkspace
-            assignments={assignments}
-            onAdd={(item) => setAssignments((current) => [item, ...current])}
-          />
+          <CoachWorkspace assignments={assignments} onAdd={addAssignment} />
         ) : (
           <>
             <DailyCoachDashboard assignments={assignments} />

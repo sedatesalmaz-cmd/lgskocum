@@ -21,7 +21,7 @@ export function CoachWorkspace({
   onAdd,
 }: {
   assignments: Assignment[];
-  onAdd: (item: Assignment) => void;
+  onAdd: (item: Omit<Assignment, 'id'>) => Promise<Assignment | null>;
 }) {
   const [subjectId, setSubjectId] = useState('matematik');
   const subject = lgsCurriculum.find((x) => x.id === subjectId)!;
@@ -61,10 +61,9 @@ export function CoachWorkspace({
       isWeeklyTestBook(name) ? 'Haftalık deneme' : subject.units[0].topics[0],
     );
   };
-  const add = () => {
+  const add = async () => {
     if (questionCount < 1) return;
-    onAdd({
-      id: Date.now(),
+    const created = await onAdd({
       dueDate,
       subjectId,
       subject: subject.name,
@@ -74,6 +73,7 @@ export function CoachWorkspace({
       questionCount,
       note,
     });
+    if (!created) return;
     setSaved(true);
     setTimeout(() => setSaved(false), 1400);
   };

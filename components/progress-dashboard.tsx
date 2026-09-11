@@ -11,7 +11,7 @@ import {
   Medal,
   Trophy,
 } from 'lucide-react';
-import { weeklyProgress } from '@/lib/deniz-history';
+import { weeklyProgress, type WeeklyProgress } from '@/lib/deniz-history';
 import { bookCatalog, booksForSubject } from '@/lib/book-catalog';
 import { lgsCurriculum } from '@/lib/lgs-curriculum';
 import { unitsForBook } from '@/lib/book-units';
@@ -51,8 +51,43 @@ const labels = {
 };
 const pct = (solved: number, target: number) =>
   target ? Math.round((solved / target) * 100) : 0;
+type LiveProgressRow = {
+  date: string;
+  subject: string;
+  target?: number;
+  solved?: number;
+};
+const weekStartFor = (value: string) => {
+  const date = new Date(`${value}T12:00:00Z`);
+  const daysFromFriday = (date.getUTCDay() - 5 + 7) % 7;
+  date.setUTCDate(date.getUTCDate() - daysFromFriday);
+  return date.toISOString().slice(0, 10);
+};
+const addDays = (value: string, days: number) => {
+  const date = new Date(`${value}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+};
+const weekLabel = (start: string) => {
+  const end = addDays(start, 6);
+  const first = new Date(`${start}T12:00:00`).toLocaleDateString('tr-TR', {
+    day: 'numeric',
+  });
+  const last = new Date(`${end}T12:00:00`).toLocaleDateString('tr-TR', {
+    day: 'numeric',
+    month: 'short',
+  });
+  return `${first}–${last}`;
+};
+const normalizeSubject = (name: string) => {
+  if (name.includes('İnkılap')) return 'İnkılap';
+  if (name.includes('Din Kültürü')) return 'Din Kültürü';
+  if (name.includes('Fen')) return 'Fen Bilimleri';
+  return name;
+};
 export function ProgressDashboard({ canEdit = false }: { canEdit?: boolean }) {
   const [items, setItems] = useState<ProgressItem[]>([]),
+    [liveWeeks, setLiveWeeks] = useState<WeeklyProgress[]>([]),
     [loading, setLoading] = useState(true),
     [subjectId, setSubjectId] = useState('matematik'),
     [book, setBook] = useState(''),
@@ -69,17 +104,68 @@ export function ProgressDashboard({ canEdit = false }: { canEdit?: boolean }) {
       .finally(() => setLoading(false));
   };
   useEffect(load, []);
+  useEffect(() => {
+    fetch('/api/progress-summary')
+      .then((r) => r.json())
+      .then(
+        (data: { targets?: LiveProgressRow[]; solved?: LiveProgressRow[] }) => {
+          const weeks = new Map<string, WeeklyProgress>();
+          const getWeek = (date: string) => {
+            const start = weekStartFor(date);
+            if (!weeks.has(start))
+              weeks.set(start, {
+                start,
+                end: addDays(start, 6),
+                label: weekLabel(start),
+                subjects: {},
+              });
+            return weeks.get(start)!;
+          };
+          for (const row of data.targets ?? []) {
+            const week = getWeek(row.date);
+            const subjectName = normalizeSubject(row.subject);
+            const current = week.subjects[subjectName] ?? {
+              target: 0,
+              solved: 0,
+            };
+            current.target += Number(row.target ?? 0);
+            week.subjects[subjectName] = current;
+          }
+          for (const row of data.solved ?? []) {
+            const week = getWeek(row.date);
+            const subjectName = normalizeSubject(row.subject);
+            const current = week.subjects[subjectName] ?? {
+              target: 0,
+              solved: 0,
+            };
+            current.solved += Number(row.solved ?? 0);
+            week.subjects[subjectName] = current;
+          }
+          setLiveWeeks(
+            [...weeks.values()].sort((a, b) => a.start.localeCompare(b.start)),
+          );
+        },
+      )
+      .catch(() => setLiveWeeks([]));
+  }, []);
+  const allWeeks = useMemo(
+    () => [
+      ...weeklyProgress,
+      ...liveWeeks.filter(
+        (week) => !weeklyProgress.some((past) => past.start === week.start),
+      ),
+    ],
+    [liveWeeks],
+  );
   const totals = useMemo(
     () =>
       subjectOrder.map((name) => {
-        const rows = weeklyProgress
-          .map((w) => w.subjects[name])
-          .filter(Boolean);
+        const rows = allWeeks.map((w) => w.subjects[name]).filter(Boolean);
         const target = rows.reduce((s, x) => s + x.target, 0),
           solved = rows.reduce((s, x) => s + x.solved, 0);
         return { name, target, solved, rate: pct(solved, target) };
       }),
-    [],
+    [allWeeks],
   );
   const save = async () => {
     if (!book || !unit) return;
@@ -181,7 +267,7 @@ export function ProgressDashboard({ canEdit = false }: { canEdit?: boolean }) {
               <span key={x}>{x}</span>
             ))}
           </div>
-          {weeklyProgress.map((week) => (
+          {allWeeks.map((week) => (
             <div className="weekly-row" key={week.start}>
               <strong>{week.label}</strong>
               {subjectOrder.map((name) => {
