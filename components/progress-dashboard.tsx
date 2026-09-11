@@ -75,6 +75,35 @@ const weekLabel = (start: string) => {
   });
   return `${first}–${last}`;
 };
+const isoWeekInfo = (week: Pick<WeeklyProgress, 'start' | 'end'>) => {
+  // Imported plans are Friday–Thursday periods. The closing date places each
+  // period into the conventional Monday–Sunday school week without changing
+  // any historical totals.
+  const date = new Date(`${week.end || week.start}T12:00:00Z`);
+  const day = date.getUTCDay() || 7;
+  const monday = new Date(date);
+  monday.setUTCDate(date.getUTCDate() - day + 1);
+  const thursday = new Date(monday);
+  thursday.setUTCDate(monday.getUTCDate() + 3);
+  const firstThursday = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 4, 12));
+  const firstDay = firstThursday.getUTCDay() || 7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - firstDay + 4);
+  const number =
+    1 + Math.round((thursday.getTime() - firstThursday.getTime()) / 604800000);
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  const format = (value: Date) =>
+    value.toLocaleDateString('tr-TR', {
+      timeZone: 'UTC',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  return {
+    label: `${number}. Hafta`,
+    range: `${format(monday)} Pazartesi – ${format(sunday)} Pazar`,
+  };
+};
 const normalizeSubject = (name: string) => {
   if (name.includes('İnkılap')) return 'İnkılap';
   if (name.includes('Din Kültürü')) return 'Din Kültürü';
@@ -282,28 +311,41 @@ export function ProgressDashboard({
               <span key={x}>{x}</span>
             ))}
           </div>
-          {allWeeks.map((week) => (
-            <div className="weekly-row" key={week.start}>
-              <strong>{week.label}</strong>
-              {subjectOrder.map((name) => {
-                const item = week.subjects[name];
-                return (
-                  <span key={name} className={!item ? 'muted' : ''}>
-                    {item ? (
-                      <>
-                        <b>
-                          {item.solved}/{item.target}
-                        </b>
-                        <small>%{pct(item.solved, item.target)}</small>
-                      </>
-                    ) : (
-                      '—'
-                    )}
-                  </span>
-                );
-              })}
-            </div>
-          ))}
+          {allWeeks.map((week) => {
+            const weekInfo = isoWeekInfo(week);
+            return (
+              <div className="weekly-row" key={week.start}>
+                <span
+                  className="week-number"
+                  tabIndex={0}
+                  title={weekInfo.range}
+                  aria-label={`${weekInfo.label}: ${weekInfo.range}`}
+                >
+                  <strong>{weekInfo.label}</strong>
+                  <small className="week-range" role="tooltip">
+                    {weekInfo.range}
+                  </small>
+                </span>
+                {subjectOrder.map((name) => {
+                  const item = week.subjects[name];
+                  return (
+                    <span key={name} className={!item ? 'muted' : ''}>
+                      {item ? (
+                        <>
+                          <b>
+                            {item.solved}/{item.target}
+                          </b>
+                          <small>%{pct(item.solved, item.target)}</small>
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </span>
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
       </section>
       {!canEdit && completedBooks.length > 0 && (
