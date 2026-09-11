@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { env } from 'cloudflare:workers';
 import { requireMember } from '@/lib/server-auth';
+import { ensureAssignments } from '@/lib/assignments-store';
 
 const db = (env as unknown as { DB: D1Database }).DB;
 
@@ -19,16 +20,7 @@ export async function GET(request: Request) {
     );
   }
   try {
-    await db
-      .prepare(
-        `CREATE TABLE IF NOT EXISTS assignments (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,due_date TEXT NOT NULL,
-          subject_id TEXT NOT NULL,subject TEXT NOT NULL,book TEXT NOT NULL,
-          unit TEXT NOT NULL,topic TEXT NOT NULL,question_count INTEGER NOT NULL,
-          note TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL
-        )`,
-      )
-      .run();
+    await ensureAssignments(db);
     const targets = await db
       .prepare(
         `SELECT due_date date,subject,SUM(question_count) target

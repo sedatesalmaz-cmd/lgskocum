@@ -1,57 +1,9 @@
 import { NextResponse } from 'next/server';
 import { env } from 'cloudflare:workers';
 import { requireMember } from '@/lib/server-auth';
-import { currentWeekAssignments } from '@/lib/current-week-plan';
+import { ensureAssignments } from '@/lib/assignments-store';
 
 const db = (env as unknown as { DB: D1Database }).DB;
-
-async function ensureAssignments() {
-  await db
-    .prepare(
-      `CREATE TABLE IF NOT EXISTS assignments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        due_date TEXT NOT NULL,
-        subject_id TEXT NOT NULL,
-        subject TEXT NOT NULL,
-        book TEXT NOT NULL,
-        unit TEXT NOT NULL,
-        topic TEXT NOT NULL,
-        question_count INTEGER NOT NULL,
-        note TEXT NOT NULL DEFAULT '',
-        created_at TEXT NOT NULL
-      )`,
-    )
-    .run();
-  await db
-    .prepare(
-      'CREATE INDEX IF NOT EXISTS idx_assignments_due_date ON assignments(due_date)',
-    )
-    .run();
-  const count = await db
-    .prepare('SELECT COUNT(*) count FROM assignments')
-    .first<{ count: number }>();
-  if (Number(count?.count ?? 0) > 0) return;
-  const now = new Date().toISOString();
-  for (const item of currentWeekAssignments) {
-    await db
-      .prepare(
-        'INSERT OR IGNORE INTO assignments(id,due_date,subject_id,subject,book,unit,topic,question_count,note,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',
-      )
-      .bind(
-        item.id,
-        item.dueDate,
-        item.subjectId,
-        item.subject,
-        item.book,
-        item.unit,
-        item.topic,
-        item.questionCount,
-        item.note,
-        now,
-      )
-      .run();
-  }
-}
 
 const select =
   'SELECT id,due_date dueDate,subject_id subjectId,subject,book,unit,topic,question_count questionCount,note FROM assignments';
@@ -59,7 +11,7 @@ const select =
 export async function GET(request: Request) {
   try {
     await requireMember(request, db, ['student', 'guardian', 'coach']);
-    await ensureAssignments();
+    await ensureAssignments(db);
     const rows = await db
       .prepare(`${select} ORDER BY due_date DESC,id DESC`)
       .all();
@@ -80,7 +32,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     await requireMember(request, db, ['guardian', 'coach']);
-    await ensureAssignments();
+    await ensureAssignments(db);
   } catch (error) {
     if (error instanceof Response)
       return NextResponse.json(
