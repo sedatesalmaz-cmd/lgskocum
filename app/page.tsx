@@ -94,19 +94,36 @@ export default function Home() {
   const todayAssignments = assignments.filter(
     (item) => item.dueDate === todayKey,
   );
+  const weekAgoDate = new Date(`${todayKey}T12:00:00`);
+  weekAgoDate.setDate(weekAgoDate.getDate() - 7);
+  const weekAgoKey = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Istanbul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(weekAgoDate);
+  const carryoverAssignments = assignments.filter(
+    (item) =>
+      item.dueDate < todayKey &&
+      item.dueDate >= weekAgoKey &&
+      !studyResults[item.id],
+  );
   const todayTarget = todayAssignments.reduce(
     (sum, item) => sum + item.questionCount,
     0,
   );
-  const todayTotals = Object.values(studyResults).reduce(
-    (sum, item) => ({
-      total: sum.total + item.total,
-      correct: sum.correct + item.correct,
-      wrong: sum.wrong + item.wrong,
-      blank: sum.blank + item.blank,
-    }),
-    { total: 0, correct: 0, wrong: 0, blank: 0 },
-  );
+  const todayAssignmentIds = new Set(todayAssignments.map((item) => item.id));
+  const todayTotals = Object.values(studyResults)
+    .filter((item) => todayAssignmentIds.has(item.assignmentId))
+    .reduce(
+      (sum, item) => ({
+        total: sum.total + item.total,
+        correct: sum.correct + item.correct,
+        wrong: sum.wrong + item.wrong,
+        blank: sum.blank + item.blank,
+      }),
+      { total: 0, correct: 0, wrong: 0, blank: 0 },
+    );
   const todayRate = todayTarget
     ? Math.min(100, Math.round((todayTotals.total / todayTarget) * 100))
     : 0;
@@ -114,7 +131,7 @@ export default function Home() {
     (item) => studyResults[item.id],
   ).length;
   useEffect(() => {
-    fetch(`/api/study-results?date=${todayKey}`)
+    fetch(`/api/study-results?from=${weekAgoKey}&to=${todayKey}`)
       .then((r) => r.json())
       .then((data: { results?: StudyResult[] }) =>
         setStudyResults(
@@ -126,7 +143,7 @@ export default function Home() {
         ),
       )
       .catch(() => {});
-  }, [todayKey]);
+  }, [todayKey, weekAgoKey]);
   const undoResult = async (assignmentId: number) => {
     const response = await fetch(
       `/api/study-results?assignmentId=${assignmentId}`,
@@ -239,7 +256,7 @@ export default function Home() {
           <QuestionCatalog />
         ) : view === 'student' ? (
           section === 'topics' ? (
-            <TopicsWorkspace />
+            <TopicsWorkspace onWrong={() => setWrongOpen(true)} />
           ) : (
             <div className="page student-visual">
               <div className="welcome student-welcome">
@@ -415,6 +432,40 @@ export default function Home() {
                   )}
                 </div>
               </section>
+              {carryoverAssignments.length > 0 && (
+                <section className="route carryover-route">
+                  <Heading
+                    kicker="ÖNCEKİ TARİHTEN KALAN"
+                    title="Bu görevler seni bekliyor"
+                    color="violet"
+                    extra={
+                      <span className="carryover-count">
+                        Son 7 gün · {carryoverAssignments.length} görev
+                      </span>
+                    }
+                  />
+                  <p className="carryover-help">
+                    Tamamlanmamış görevler yedi gün boyunca burada kalır. Göreve
+                    dokunduğunda çalışma bugünün tarihine kaydedilir.
+                  </p>
+                  <div className="tasks">
+                    {carryoverAssignments.map((item) => (
+                      <Task
+                        key={item.id}
+                        done={false}
+                        onClick={() => setSelectedAssignment(item)}
+                        icon={item.subjectId === 'matematik' ? 'π' : '•'}
+                        color={
+                          item.subjectId === 'matematik' ? 'purple' : 'teal'
+                        }
+                        top={`${item.subject.toUpperCase()} · ${item.questionCount} SORU`}
+                        title={item.topic}
+                        meta={`${new Date(`${item.dueDate}T12:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} tarihinden kaldı · ${item.book}`}
+                      />
+                    ))}
+                  </div>
+                </section>
+              )}
               <section className="lower">
                 <article className="weak">
                   <Heading
@@ -634,6 +685,9 @@ export default function Home() {
         <StudyEntryModal
           assignment={selectedAssignment}
           existing={studyResults[selectedAssignment.id]}
+          defaultStudyDate={
+            selectedAssignment.dueDate < todayKey ? todayKey : undefined
+          }
           onClose={() => setSelectedAssignment(null)}
           onSaved={(result) => {
             setStudyResults((x) => ({ ...x, [result.assignmentId]: result }));

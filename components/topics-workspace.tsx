@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   BookOpen,
   CalendarDays,
@@ -24,7 +24,7 @@ type Entry = {
   blank: number;
 };
 
-export function TopicsWorkspace() {
+export function TopicsWorkspace({ onWrong }: { onWrong?: () => void }) {
   const [subjectId, setSubjectId] = useState('matematik');
   const subject = lgsCurriculum.find((item) => item.id === subjectId)!;
   const [unitName, setUnitName] = useState('');
@@ -36,6 +36,8 @@ export function TopicsWorkspace() {
   const [wrong, setWrong] = useState(0);
   const [blank, setBlank] = useState(0);
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
   const correct = Math.max(0, total - wrong - blank);
   const selectedCount = useMemo(
     () =>
@@ -44,6 +46,42 @@ export function TopicsWorkspace() {
         .reduce((sum, entry) => sum + entry.total, 0),
     [entries, subject.name],
   );
+
+  useEffect(() => {
+    fetch(`/api/study-results?subjectId=${subjectId}`)
+      .then((response) => response.json())
+      .then(
+        (data: {
+          results?: Array<{
+            id: number;
+            studyDate: string;
+            subjectId: string;
+            unit: string;
+            topic: string;
+            book: string;
+            total: number;
+            correct: number;
+            wrong: number;
+            blank: number;
+          }>;
+        }) =>
+          setEntries(
+            (data.results ?? []).map((entry) => ({
+              id: entry.id,
+              date: entry.studyDate,
+              subject: subject.name,
+              unit: entry.unit,
+              topic: entry.topic,
+              book: entry.book,
+              total: entry.total,
+              correct: entry.correct,
+              wrong: entry.wrong,
+              blank: entry.blank,
+            })),
+          ),
+      )
+      .catch(() => setMessage('Çalışma geçmişi yüklenemedi.'));
+  }, [subjectId, subject.name]);
 
   const chooseSubject = (id: string) => {
     setSubjectId(id);
@@ -62,23 +100,54 @@ export function TopicsWorkspace() {
     setTopic('');
   };
 
-  const saveEntry = () => {
+  const saveEntry = async () => {
     if (!unit || !topic || total < 1 || wrong + blank > total) return;
-    setEntries((current) => [
-      {
-        id: Date.now(),
-        date,
-        subject: subject.name,
-        unit: unit.name,
-        topic,
-        book: book || 'Kitap seçilmedi',
-        total,
-        correct,
-        wrong,
-        blank,
-      },
-      ...current,
-    ]);
+    setBusy(true);
+    setMessage('');
+    try {
+      const response = await fetch('/api/study-results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assignmentId: null,
+          studyDate: date,
+          subjectId,
+          unit: unit.name,
+          topic,
+          book: book || 'Kitap seçilmedi',
+          total,
+          correct,
+          wrong,
+          blank,
+        }),
+      });
+      const data = (await response.json()) as { id?: number; error?: string };
+      if (!response.ok) {
+        setMessage(data.error ?? 'Çalışma kaydedilemedi.');
+        return;
+      }
+      setEntries((current) => [
+        {
+          id: data.id ?? Date.now(),
+          date,
+          subject: subject.name,
+          unit: unit.name,
+          topic,
+          book: book || 'Kitap seçilmedi',
+          total,
+          correct,
+          wrong,
+          blank,
+        },
+        ...current,
+      ]);
+      setMessage('Çalışma kaydedildi. Günlük ve haftalık raporlara eklendi.');
+      if (wrong > 0) onWrong?.();
+    } catch {
+      setMessage('Çalışma kaydedilemedi. Lütfen tekrar deneyin.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -92,7 +161,7 @@ export function TopicsWorkspace() {
         </div>
         <div className="topic-total">
           <b>{selectedCount}</b>
-          <span>bu oturumda eklenen soru</span>
+          <span>kayıtlı toplam soru</span>
         </div>
       </div>
 
@@ -164,63 +233,91 @@ export function TopicsWorkspace() {
           </div>
         </section>
 
-        {unit && topic ? <aside className="entry-panel">
-          <span
-            className="entry-icon"
-            style={{ background: `${subject.color}18`, color: subject.color }}
-          >
-            {subject.icon}
-          </span>
-          <p className="eyebrow">GEÇMİŞ VEYA BUGÜNKÜ ÇALIŞMA</p>
-          <h2>{topic}</h2>
-          <p className="entry-unit">
-            {subject.name} · {unit.name}
-          </p>
-          <label>
-            <span>
-              <CalendarDays /> Çalışma tarihi
+        {unit && topic ? (
+          <aside className="entry-panel">
+            <span
+              className="entry-icon"
+              style={{ background: `${subject.color}18`, color: subject.color }}
+            >
+              {subject.icon}
             </span>
-            <input
-              type="date"
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-            />
-          </label>
-          <label>
-            <span>
-              <BookOpen /> Kullanılan kitap
-            </span>
-            <BookPicker subjectId={subjectId} value={book} onChange={setBook} />
-          </label>
-          <div className="entry-numbers">
-            <NumberField label="Toplam" value={total} onChange={setTotal} />
-            <NumberField label="Yanlış" value={wrong} onChange={setWrong} />
-            <NumberField label="Boş" value={blank} onChange={setBlank} />
-          </div>
-          <div className="entry-result">
-            <span>Doğru</span>
-            <b>{correct}</b>
-            <span>Net</span>
-            <b>{(correct - wrong / 3).toFixed(2)}</b>
-          </div>
-          {wrong + blank > total && (
-            <p className="entry-error">
-              Yanlış ve boş toplamı, toplam soru sayısını aşamaz.
+            <p className="eyebrow">GEÇMİŞ VEYA BUGÜNKÜ ÇALIŞMA</p>
+            <h2>{topic}</h2>
+            <p className="entry-unit">
+              {subject.name} · {unit.name}
             </p>
-          )}
-          <button
-            className="save-entry"
-            onClick={saveEntry}
-            disabled={wrong + blank > total || total < 1}
-          >
-            <Plus /> Çalışmayı ekle
-          </button>
-        </aside> : <aside className="entry-panel entry-panel-empty">
-          <span className="entry-icon" style={{ background: `${subject.color}18`, color: subject.color }}>{subject.icon}</span>
-          <p className="eyebrow">ÇALIŞMA GİRİŞİ</p>
-          <h2>Önce bir konu seç</h2>
-          <p className="entry-unit">Üniteyi aç, çalıştığın konuya dokun. Giriş alanı burada hazır olacak.</p>
-        </aside>}
+            <label>
+              <span>
+                <CalendarDays /> Çalışma tarihi
+              </span>
+              <input
+                type="date"
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+              />
+            </label>
+            <label>
+              <span>
+                <BookOpen /> Kullanılan kitap
+              </span>
+              <BookPicker
+                subjectId={subjectId}
+                value={book}
+                onChange={setBook}
+              />
+            </label>
+            <div className="entry-numbers">
+              <NumberField label="Toplam" value={total} onChange={setTotal} />
+              <NumberField label="Yanlış" value={wrong} onChange={setWrong} />
+              <NumberField label="Boş" value={blank} onChange={setBlank} />
+            </div>
+            <div className="entry-result">
+              <span>Doğru</span>
+              <b>{correct}</b>
+              <span>Net</span>
+              <b>{(correct - wrong / 3).toFixed(2)}</b>
+            </div>
+            {wrong + blank > total && (
+              <p className="entry-error">
+                Yanlış ve boş toplamı, toplam soru sayısını aşamaz.
+              </p>
+            )}
+            {message && (
+              <p
+                className={
+                  message.includes('kaydedildi')
+                    ? 'entry-success'
+                    : 'entry-error'
+                }
+              >
+                {message}
+              </p>
+            )}
+            <button
+              className="save-entry"
+              onClick={saveEntry}
+              disabled={busy || wrong + blank > total || total < 1}
+            >
+              <Plus />{' '}
+              {busy ? 'Kaydediliyor…' : 'Geçmiş / ekstra çalışmayı ekle'}
+            </button>
+          </aside>
+        ) : (
+          <aside className="entry-panel entry-panel-empty">
+            <span
+              className="entry-icon"
+              style={{ background: `${subject.color}18`, color: subject.color }}
+            >
+              {subject.icon}
+            </span>
+            <p className="eyebrow">ÇALIŞMA GİRİŞİ</p>
+            <h2>Önce bir konu seç</h2>
+            <p className="entry-unit">
+              Üniteyi aç, çalıştığın konuya dokun. Giriş alanı burada hazır
+              olacak.
+            </p>
+          </aside>
+        )}
       </div>
 
       {entries.length > 0 && (

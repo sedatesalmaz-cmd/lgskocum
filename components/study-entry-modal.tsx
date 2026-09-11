@@ -1,4 +1,154 @@
-'use client';import {useState} from 'react';import {ArrowRight,Check,X} from 'lucide-react';import type {Assignment} from './coach-workspace';
-export type StudyResult={id:number;assignmentId:number;studyDate:string;subjectId:string;unit:string;topic:string;book:string;total:number;correct:number;wrong:number;blank:number};
-export function StudyEntryModal({assignment,existing,onClose,onSaved}:{assignment:Assignment;existing?:StudyResult;onClose:()=>void;onSaved:(result:StudyResult)=>void}){const [date,setDate]=useState(existing?.studyDate??assignment.dueDate),[total,setTotal]=useState(existing?.total??assignment.questionCount),[wrong,setWrong]=useState(existing?.wrong??0),[blank,setBlank]=useState(existing?.blank??0),[busy,setBusy]=useState(false),[error,setError]=useState('');const correct=Math.max(0,total-wrong-blank);const invalid=total<=0||wrong+blank>total;const save=async()=>{if(invalid)return;setBusy(true);const payload={assignmentId:assignment.id,studyDate:date,subjectId:assignment.subjectId,unit:assignment.unit,topic:assignment.topic,book:assignment.book,total,correct,wrong,blank};const response=await fetch('/api/study-results',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await response.json() as {id?:number;error?:string};setBusy(false);if(!response.ok){setError(data.error??'Kayıt yapılamadı.');return}onSaved({...payload,id:data.id??existing?.id??0})};return <div className="backdrop"><section className="study-modal"><button className="close" onClick={onClose}><X/></button><p className="eyebrow">GÖREV SONUCU</p><h2>{assignment.topic}</h2><p className="study-meta">{assignment.book} · hedef {assignment.questionCount} soru</p><label>Çalışma tarihi<input type="date" value={date} onChange={e=>setDate(e.target.value)}/></label><div className="study-numbers"><Field label="Çözülen" value={total} set={setTotal}/><Field label="Yanlış" value={wrong} set={setWrong}/><Field label="Boş" value={blank} set={setBlank}/></div><div className="study-correct"><span>Doğru</span><b>{correct}</b></div>{total<=0&&<p className="entry-error">Görevi tamamlamak için en az 1 çözülen soru girmelisin.</p>}{wrong+blank>total&&<p className="entry-error">Yanlış ve boş toplamı çözülen soruyu aşamaz.</p>}{error&&<p className="entry-error">{error}</p>}<button className="study-save" disabled={busy||invalid} onClick={save}>{busy?'Kaydediliyor…':<>{existing?<Check/>:<ArrowRight/>} {existing?'Kaydı güncelle':'Sonucu kaydet'}</>}</button></section></div>}
-function Field({label,value,set}:{label:string;value:number;set:(v:number)=>void}){return <label>{label}<input type="number" min="0" value={value} onChange={e=>set(Math.max(0,Number(e.target.value)))}/></label>}
+'use client';
+import { useState } from 'react';
+import { ArrowRight, Check, X } from 'lucide-react';
+import type { Assignment } from './coach-workspace';
+export type StudyResult = {
+  id: number;
+  assignmentId: number;
+  studyDate: string;
+  subjectId: string;
+  unit: string;
+  topic: string;
+  book: string;
+  total: number;
+  correct: number;
+  wrong: number;
+  blank: number;
+};
+export function StudyEntryModal({
+  assignment,
+  existing,
+  defaultStudyDate,
+  onClose,
+  onSaved,
+}: {
+  assignment: Assignment;
+  existing?: StudyResult;
+  defaultStudyDate?: string;
+  onClose: () => void;
+  onSaved: (result: StudyResult) => void;
+}) {
+  const [date, setDate] = useState(
+      existing?.studyDate ?? defaultStudyDate ?? assignment.dueDate,
+    ),
+    [total, setTotal] = useState(existing?.total ?? assignment.questionCount),
+    [wrong, setWrong] = useState(existing?.wrong ?? 0),
+    [blank, setBlank] = useState(existing?.blank ?? 0),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
+  const correct = Math.max(0, total - wrong - blank);
+  const invalid = total <= 0 || wrong + blank > total;
+  const save = async () => {
+    if (invalid) return;
+    setBusy(true);
+    const payload = {
+      assignmentId: assignment.id,
+      studyDate: date,
+      subjectId: assignment.subjectId,
+      unit: assignment.unit,
+      topic: assignment.topic,
+      book: assignment.book,
+      total,
+      correct,
+      wrong,
+      blank,
+    };
+    const response = await fetch('/api/study-results', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = (await response.json()) as { id?: number; error?: string };
+    setBusy(false);
+    if (!response.ok) {
+      setError(data.error ?? 'Kayıt yapılamadı.');
+      return;
+    }
+    onSaved({ ...payload, id: data.id ?? existing?.id ?? 0 });
+  };
+  return (
+    <div className="backdrop">
+      <section className="study-modal">
+        <button className="close" onClick={onClose}>
+          <X />
+        </button>
+        <p className="eyebrow">GÖREV SONUCU</p>
+        <h2>{assignment.topic}</h2>
+        <p className="study-meta">
+          {assignment.book} · hedef {assignment.questionCount} soru
+        </p>
+        {assignment.dueDate !== date && (
+          <p className="carryover-note">
+            Önceki tarihten kalan görev · Planlanan tarih{' '}
+            {new Date(`${assignment.dueDate}T12:00:00`).toLocaleDateString(
+              'tr-TR',
+            )}
+          </p>
+        )}
+        <label>
+          Çalışma tarihi
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+        </label>
+        <div className="study-numbers">
+          <Field label="Çözülen" value={total} set={setTotal} />
+          <Field label="Yanlış" value={wrong} set={setWrong} />
+          <Field label="Boş" value={blank} set={setBlank} />
+        </div>
+        <div className="study-correct">
+          <span>Doğru</span>
+          <b>{correct}</b>
+        </div>
+        {total <= 0 && (
+          <p className="entry-error">
+            Görevi tamamlamak için en az 1 çözülen soru girmelisin.
+          </p>
+        )}
+        {wrong + blank > total && (
+          <p className="entry-error">
+            Yanlış ve boş toplamı çözülen soruyu aşamaz.
+          </p>
+        )}
+        {error && <p className="entry-error">{error}</p>}
+        <button
+          className="study-save"
+          disabled={busy || invalid}
+          onClick={save}
+        >
+          {busy ? (
+            'Kaydediliyor…'
+          ) : (
+            <>
+              {existing ? <Check /> : <ArrowRight />}{' '}
+              {existing ? 'Kaydı güncelle' : 'Sonucu kaydet'}
+            </>
+          )}
+        </button>
+      </section>
+    </div>
+  );
+}
+function Field({
+  label,
+  value,
+  set,
+}: {
+  label: string;
+  value: number;
+  set: (v: number) => void;
+}) {
+  return (
+    <label>
+      {label}
+      <input
+        type="number"
+        min="0"
+        value={value}
+        onChange={(e) => set(Math.max(0, Number(e.target.value)))}
+      />
+    </label>
+  );
+}
