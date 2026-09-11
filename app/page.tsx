@@ -73,6 +73,7 @@ export default function Home() {
   const [section, setSection] = useState<
     'today' | 'topics' | 'assignments' | 'progress' | 'catalog'
   >('today');
+  const [navOpen, setNavOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const [count, setCount] = useState(0);
@@ -166,14 +167,31 @@ export default function Home() {
   return (
     <main className="shell">
       <AccessGate />
-      <aside className="side">
-        <a className="brand" href="#">
+      {navOpen && (
+        <button
+          className="mobile-nav-backdrop"
+          aria-label="Menüyü kapat"
+          onClick={() => setNavOpen(false)}
+        />
+      )}
+      <aside className={`side ${navOpen ? 'mobile-open' : ''}`}>
+        <button
+          className="brand"
+          aria-label="Bugünkü rotaya git"
+          onClick={() => {
+            setSection('today');
+            setNavOpen(false);
+          }}
+        >
           <span>R</span>
-        </a>
+        </button>
         <nav>
           <button
             className={section === 'today' ? 'active' : ''}
-            onClick={() => setSection('today')}
+            onClick={() => {
+              setSection('today');
+              setNavOpen(false);
+            }}
           >
             <House />
             <i>Bugün</i>
@@ -188,16 +206,20 @@ export default function Home() {
                 ? 'active'
                 : ''
             }
-            onClick={() =>
-              setSection(view === 'student' ? 'topics' : 'assignments')
-            }
+            onClick={() => {
+              setSection(view === 'student' ? 'topics' : 'assignments');
+              setNavOpen(false);
+            }}
           >
             <Target />
             <i>{view === 'student' ? 'Konularım' : 'Ödev Ver'}</i>
           </button>
           <button
             className={section === 'progress' ? 'active' : ''}
-            onClick={() => setSection('progress')}
+            onClick={() => {
+              setSection('progress');
+              setNavOpen(false);
+            }}
           >
             <BarChart3 />
             <i>Gelişim</i>
@@ -205,13 +227,22 @@ export default function Home() {
           {view === 'adult' && (
             <button
               className={section === 'catalog' ? 'active' : ''}
-              onClick={() => setSection('catalog')}
+              onClick={() => {
+                setSection('catalog');
+                setNavOpen(false);
+              }}
             >
               <BookCheck />
               <i>Soru Kataloğu</i>
             </button>
           )}
-          <button>
+          <button
+            onClick={() => {
+              setView('adult');
+              setSection('today');
+              setNavOpen(false);
+            }}
+          >
             <UsersRound />
             <i>Koçlarım</i>
           </button>
@@ -220,7 +251,12 @@ export default function Home() {
       </aside>
       <section className="workspace">
         <header className="top">
-          <button className="hamb">
+          <button
+            className="hamb"
+            aria-label={navOpen ? 'Menüyü kapat' : 'Menüyü aç'}
+            aria-expanded={navOpen}
+            onClick={() => setNavOpen((current) => !current)}
+          >
             <Menu />
           </button>
           <div className="switch">

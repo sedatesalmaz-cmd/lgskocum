@@ -66,6 +66,11 @@ button {
   font-weight: 900;
   transform: rotate(-4deg);
 }
+.brand {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
 .side nav {
   display: flex;
   flex-direction: column;
@@ -1021,6 +1026,25 @@ button {
   .side {
     display: none;
   }
+  .side.mobile-open {
+    display: flex;
+    width: 116px;
+    z-index: 30;
+    box-shadow: 18px 0 50px #1714264d;
+  }
+  .side.mobile-open nav {
+    margin-top: 30px;
+  }
+  .side.mobile-open nav button {
+    min-height: 62px;
+  }
+  .mobile-nav-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 29;
+    border: 0;
+    background: #211d364d;
+  }
   .workspace {
     margin-left: 0;
   }
@@ -1030,6 +1054,11 @@ button {
   }
   .hamb {
     visibility: visible;
+    min-width: 44px;
+    min-height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
   }
   .topright span {
     display: none;
