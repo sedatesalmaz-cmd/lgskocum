@@ -305,7 +305,10 @@ export default function Home() {
           </div>
         </header>
         {section === 'progress' ? (
-          <ProgressDashboard canEdit={view === 'adult'} />
+          <ProgressDashboard
+            canEdit={view === 'adult'}
+            assignments={assignments}
+          />
         ) : section === 'catalog' && view === 'adult' ? (
           <QuestionCatalog />
         ) : view === 'student' ? (

@@ -15,6 +15,8 @@ import { weeklyProgress, type WeeklyProgress } from '@/lib/deniz-history';
 import { bookCatalog, booksForSubject } from '@/lib/book-catalog';
 import { lgsCurriculum } from '@/lib/lgs-curriculum';
 import { unitsForBook } from '@/lib/book-units';
+import type { Assignment } from '@/components/coach-workspace';
+import type { StudyResult } from '@/components/study-entry-modal';
 type ProgressItem = {
   id: number;
   subjectId: string;
@@ -51,12 +53,6 @@ const labels = {
 };
 const pct = (solved: number, target: number) =>
   target ? Math.round((solved / target) * 100) : 0;
-type LiveProgressRow = {
-  date: string;
-  subject: string;
-  target?: number;
-  solved?: number;
-};
 const weekStartFor = (value: string) => {
   const date = new Date(`${value}T12:00:00Z`);
   const daysFromFriday = (date.getUTCDay() - 5 + 7) % 7;
@@ -85,9 +81,15 @@ const normalizeSubject = (name: string) => {
   if (name.includes('Fen')) return 'Fen Bilimleri';
   return name;
 };
-export function ProgressDashboard({ canEdit = false }: { canEdit?: boolean }) {
+export function ProgressDashboard({
+  canEdit = false,
+  assignments,
+}: {
+  canEdit?: boolean;
+  assignments: Assignment[];
+}) {
   const [items, setItems] = useState<ProgressItem[]>([]),
-    [liveWeeks, setLiveWeeks] = useState<WeeklyProgress[]>([]),
+    [liveResults, setLiveResults] = useState<StudyResult[]>([]),
     [loading, setLoading] = useState(true),
     [subjectId, setSubjectId] = useState('matematik'),
     [book, setBook] = useState(''),
@@ -105,49 +107,62 @@ export function ProgressDashboard({ canEdit = false }: { canEdit?: boolean }) {
   };
   useEffect(load, []);
   useEffect(() => {
-    fetch('/api/progress-summary')
+    const today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Istanbul',
+    }).format(new Date());
+    fetch(`/api/study-results?from=2026-09-04&to=${today}`)
       .then((r) => r.json())
-      .then(
-        (data: { targets?: LiveProgressRow[]; solved?: LiveProgressRow[] }) => {
-          const weeks = new Map<string, WeeklyProgress>();
-          const getWeek = (date: string) => {
-            const start = weekStartFor(date);
-            if (!weeks.has(start))
-              weeks.set(start, {
-                start,
-                end: addDays(start, 6),
-                label: weekLabel(start),
-                subjects: {},
-              });
-            return weeks.get(start)!;
-          };
-          for (const row of data.targets ?? []) {
-            const week = getWeek(row.date);
-            const subjectName = normalizeSubject(row.subject);
-            const current = week.subjects[subjectName] ?? {
-              target: 0,
-              solved: 0,
-            };
-            current.target += Number(row.target ?? 0);
-            week.subjects[subjectName] = current;
-          }
-          for (const row of data.solved ?? []) {
-            const week = getWeek(row.date);
-            const subjectName = normalizeSubject(row.subject);
-            const current = week.subjects[subjectName] ?? {
-              target: 0,
-              solved: 0,
-            };
-            current.solved += Number(row.solved ?? 0);
-            week.subjects[subjectName] = current;
-          }
-          setLiveWeeks(
-            [...weeks.values()].sort((a, b) => a.start.localeCompare(b.start)),
-          );
-        },
+      .then((data: { results?: StudyResult[] }) =>
+        setLiveResults(data.results ?? []),
       )
-      .catch(() => setLiveWeeks([]));
+      .catch(() => setLiveResults([]));
   }, []);
+  const liveWeeks = useMemo(() => {
+    const weeks = new Map<string, WeeklyProgress>();
+    const getWeek = (date: string) => {
+      const start = weekStartFor(date);
+      if (!weeks.has(start))
+        weeks.set(start, {
+          start,
+          end: addDays(start, 6),
+          label: weekLabel(start),
+          subjects: {},
+        });
+      return weeks.get(start)!;
+    };
+    for (const assignment of assignments.filter(
+      (item) => item.dueDate >= '2026-09-04',
+    )) {
+      const week = getWeek(assignment.dueDate);
+      const name = normalizeSubject(assignment.subject);
+      const current = week.subjects[name] ?? { target: 0, solved: 0 };
+      current.target += Number(assignment.questionCount);
+      week.subjects[name] = current;
+    }
+    for (const result of liveResults) {
+      const week = getWeek(result.studyDate);
+      const assignment = assignments.find(
+        (item) => item.id === result.assignmentId,
+      );
+      const fallback =
+        result.subjectId === 'matematik'
+          ? 'Matematik'
+          : result.subjectId.includes('fen')
+            ? 'Fen Bilimleri'
+            : result.subjectId.includes('inkilap')
+              ? 'İnkılap'
+              : result.subjectId.includes('din')
+                ? 'Din Kültürü'
+                : result.subjectId === 'ingilizce'
+                  ? 'İngilizce'
+                  : 'Türkçe';
+      const name = normalizeSubject(assignment?.subject ?? fallback);
+      const current = week.subjects[name] ?? { target: 0, solved: 0 };
+      current.solved += Number(result.total);
+      week.subjects[name] = current;
+    }
+    return [...weeks.values()].sort((a, b) => a.start.localeCompare(b.start));
+  }, [assignments, liveResults]);
   const allWeeks = useMemo(
     () => [
       ...weeklyProgress,
