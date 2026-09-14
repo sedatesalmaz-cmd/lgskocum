@@ -68,7 +68,6 @@ export function AdminPanel({ onDataCleared }: { onDataCleared: () => void }) {
     'loading' | 'signedOut' | 'forbidden' | 'ready'
   >('loading');
   const [email, setEmail] = useState('');
-  const [userId, setUserId] = useState('');
   const [counts, setCounts] = useState<Partial<Counts>>({});
   const [busy, setBusy] = useState<Scope | null>(null);
   const [message, setMessage] = useState('');
@@ -82,18 +81,7 @@ export function AdminPanel({ onDataCleared }: { onDataCleared: () => void }) {
       counts?: Counts;
     };
     if (response.status === 401) return setState('signedOut');
-    if (!response.ok || !data.authorized) {
-      const identityResponse = await fetch('/api/whoami');
-      if (identityResponse.ok) {
-        const identity = (await identityResponse.json()) as {
-          email?: string;
-          userId?: string;
-        };
-        setEmail(identity.email ?? '');
-        setUserId(identity.userId ?? '');
-      }
-      return setState('forbidden');
-    }
+    if (!response.ok || !data.authorized) return setState('forbidden');
     setEmail(data.email ?? '');
     setCounts(data.counts ?? {});
     setState('ready');
@@ -153,8 +141,6 @@ export function AdminPanel({ onDataCleared }: { onDataCleared: () => void }) {
         <LockKeyhole />
         <h1>Bu hesap yetkili değil</h1>
         <p>Yönetim alanı yalnızca sistem sahibinin hesabına açıktır.</p>
-        {email && <p>Oturum: {email}</p>}
-        {userId && <p className="admin-identity">Kimlik: {userId}</p>}
       </div>
     );
 
