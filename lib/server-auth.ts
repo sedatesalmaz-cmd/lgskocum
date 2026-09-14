@@ -1,77 +1,14 @@
-type Db = {
-  prepare: (query: string) => {
-    bind: (...values: unknown[]) => {
-      first: <T>() => Promise<T | null>;
-      run: () => Promise<unknown>;
-    };
-    first: <T>() => Promise<T | null>;
-  };
-};
-export async function accessDigest(value: string) {
-  const bytes = await crypto.subtle.digest(
-    'SHA-256',
-    new TextEncoder().encode(value),
-  );
-  return [...new Uint8Array(bytes)]
-    .map((x) => x.toString(16).padStart(2, '0'))
-    .join('');
-}
-export async function hasFamilyAccess(request: Request) {
-  const secret = process.env.FAMILY_ACCESS_CODE;
-  if (!secret) return false;
-  const cookie = request.headers
-    .get('cookie')
-    ?.match(/(?:^|; )rota_access=([^;]+)/)?.[1];
-  return Boolean(cookie && cookie === (await accessDigest(secret)));
-}
-export async function requireMember(request: Request, db: Db, roles: string[]) {
-  let userId = request.headers.get('oai-authenticated-user-id'),
-    email = request.headers.get('oai-authenticated-user-email');
-  if (!userId || !email) {
-    if (!(await hasFamilyAccess(request)))
-      throw new Response('Giriş gerekli', { status: 401 });
-    userId = 'family-access';
-    email = 'family@local';
-  }
-  if (userId === 'family-access')
-    return {
-      userId,
-      email,
-      role: roles.includes('guardian') ? 'guardian' : roles[0],
-      subjectId: null,
-    };
-  let member = await db
-    .prepare(
-      'SELECT role, subject_id as subjectId FROM members WHERE user_id = ?',
-    )
-    .bind(userId)
-    .first<{ role: string; subjectId: string | null }>();
-  if (!member) {
-    const count = await db
-      .prepare('SELECT COUNT(*) as count FROM members')
-      .first<{ count: number }>();
-    if (Number(count?.count ?? 0) !== 0)
-      throw new Response('Bu hesap henüz davet edilmemiş', { status: 403 });
-    await db
-      .prepare(
-        'INSERT INTO members (user_id, email, role, created_at) VALUES (?, ?, ?, ?)',
-      )
-      .bind(userId, email, 'guardian', new Date().toISOString())
-      .run();
-    member = { role: 'guardian', subjectId: null };
-  }
-  if (!roles.includes(member.role))
-    throw new Response('Bu işlem için yetkiniz yok', { status: 403 });
-  return { userId, email, ...member };
-}
-
-export function requireAdmin(request: Request) {
-  const userId = request.headers.get('oai-authenticated-user-id');
-  const email = request.headers.get('oai-authenticated-user-email');
-  const adminUserId = process.env.ADMIN_USER_ID;
-  if (!userId || !email)
-    throw new Response('Yönetici girişi gerekli', { status: 401 });
-  if (!adminUserId || userId !== adminUserId)
-    throw new Response('Bu hesap yönetici değil', { status: 403 });
-  return { userId, email, role: 'admin' as const };
-}
+export type AppRole = 'student' | 'coach' | 'admin';
+type AuthUser = { username: string; role: AppRole; salt: string; hash: string };
+export type AppSession = { username: string; role: AppRole; exp: number };
+const encoder = new TextEncoder();
+function bytesToBase64Url(bytes: Uint8Array) { let value = ''; for (const byte of bytes) value += String.fromCharCode(byte); return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, ''); }
+function base64UrlToBytes(value: string) { const normalized = value.replace(/-/g, '+').replace(/_/g, '/'); const binary = atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')); return Uint8Array.from(binary, (character) => character.charCodeAt(0)); }
+async function hmac(value: string) { const secret = process.env.SESSION_SECRET; if (!secret) throw new Error('SESSION_SECRET eksik'); const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); return bytesToBase64Url(new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode(value)))); }
+function safeEqual(left: string, right: string) { if (left.length !== right.length) return false; let difference = 0; for (let index = 0; index < left.length; index += 1) difference |= left.charCodeAt(index) ^ right.charCodeAt(index); return difference === 0; }
+function users(): AuthUser[] { try { return JSON.parse(process.env.AUTH_USERS ?? '[]') as AuthUser[]; } catch { return []; } }
+export async function verifyCredentials(username: string, password: string) { const user = users().find((candidate) => candidate.username.toLocaleLowerCase('tr-TR') === username.trim().toLocaleLowerCase('tr-TR')); if (!user) return null; const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']); const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: base64UrlToBytes(user.salt), iterations: 120000 }, key, 256); return safeEqual(bytesToBase64Url(new Uint8Array(bits)), user.hash) ? user : null; }
+export async function createSession(user: Pick<AuthUser, 'username' | 'role'>) { const session: AppSession = { username: user.username, role: user.role, exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30 }; const payload = bytesToBase64Url(encoder.encode(JSON.stringify(session))); return `${payload}.${await hmac(payload)}`; }
+export async function getSession(request: Request): Promise<AppSession | null> { const token = request.headers.get('cookie')?.match(/(?:^|; )rota_session=([^;]+)/)?.[1]; if (!token) return null; const [payload, signature] = token.split('.'); if (!payload || !signature || !safeEqual(signature, await hmac(payload))) return null; try { const session = JSON.parse(new TextDecoder().decode(base64UrlToBytes(payload))) as AppSession; if (!session.username || !['student', 'coach', 'admin'].includes(session.role) || session.exp < Date.now() / 1000) return null; return session; } catch { return null; } }
+export async function requireMember(request: Request, _db: unknown, roles: string[]) { const session = await getSession(request); if (!session) throw new Response('Giriş gerekli', { status: 401 }); const allowed = session.role === 'admin' || roles.includes(session.role) || (session.role === 'coach' && roles.includes('guardian')); if (!allowed) throw new Response('Bu işlem için yetkiniz yok', { status: 403 }); return { userId: session.username, email: '', role: session.role, subjectId: session.role === 'student' ? 'deniz' : null }; }
+export async function requireAdmin(request: Request) { const session = await getSession(request); if (!session) throw new Response('Yönetici girişi gerekli', { status: 401 }); if (session.role !== 'admin') throw new Response('Bu hesap yönetici değil', { status: 403 }); return { userId: session.username, email: session.username, role: 'admin' as const }; }

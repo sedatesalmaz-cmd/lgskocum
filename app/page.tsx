@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ArrowRight,
   BarChart3,
@@ -38,7 +38,7 @@ import {
   type StudyResult,
 } from '@/components/study-entry-modal';
 import { DailyCoachDashboard } from '@/components/daily-coach-dashboard';
-import { AccessGate } from '@/components/access-gate';
+import { AccessGate, type UserSession } from '@/components/access-gate';
 
 const subjects = [
   ['Matematik', 'π', '#7357c7', '#eee9fb', 0],
@@ -69,6 +69,7 @@ function Ring({ value }: { value: number }) {
 }
 
 export default function Home() {
+  const [session, setSession] = useState<UserSession | null>(null);
   const [wrongOpen, setWrongOpen] = useState(false);
   const [view, setView] = useState<'student' | 'adult'>('student');
   const [section, setSection] = useState<
@@ -85,6 +86,17 @@ export default function Home() {
   const [studyResults, setStudyResults] = useState<Record<number, StudyResult>>(
     {},
   );
+  const acceptSession = useCallback((next: UserSession) => {
+    setSession(next);
+    setView(next.role === 'student' ? 'student' : 'adult');
+    setSection('today');
+  }, []);
+  const signOut = async () => {
+    await fetch('/api/access', { method: 'DELETE' });
+    setSession(null);
+    setAssignments([]);
+    setStudyResults({});
+  };
   const todayKey = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/Istanbul',
     year: 'numeric',
@@ -131,6 +143,7 @@ export default function Home() {
     (item) => studyResults[item.id],
   ).length;
   useEffect(() => {
+    if (!session) return;
     fetch('/api/assignments')
       .then((r) => r.json())
       .then((data: { assignments?: Assignment[] }) => {
@@ -149,7 +162,7 @@ export default function Home() {
         ),
       )
       .catch(() => {});
-  }, [todayKey, weekAgoKey]);
+  }, [todayKey, weekAgoKey, session]);
   const addAssignment = async (item: Omit<Assignment, 'id'>) => {
     const response = await fetch('/api/assignments', {
       method: 'POST',
@@ -181,9 +194,14 @@ export default function Home() {
       setOpen(false);
     }, 900);
   };
+  if (!session)
+    return (
+      <main className="shell">
+        <AccessGate onAuthenticated={acceptSession} />
+      </main>
+    );
   return (
     <main className="shell">
-      <AccessGate />
       {navOpen && (
         <button
           className="mobile-nav-backdrop"
@@ -253,7 +271,7 @@ export default function Home() {
                 <BookCheck />
                 <i>Soru Kataloğu</i>
               </button>
-              <button
+              {session.role === 'admin' && <button
                 className={section === 'admin' ? 'active' : ''}
                 onClick={() => {
                   setSection('admin');
@@ -262,10 +280,10 @@ export default function Home() {
               >
                 <ShieldCheck />
                 <i>Yönetim</i>
-              </button>
+              </button>}
             </>
           )}
-          <button
+          {view === 'adult' && <button
             onClick={() => {
               setView('adult');
               setSection('today');
@@ -274,7 +292,7 @@ export default function Home() {
           >
             <UsersRound />
             <i>Koçlarım</i>
-          </button>
+          </button>}
         </nav>
         <button className="mini">D</button>
       </aside>
@@ -288,31 +306,13 @@ export default function Home() {
           >
             <Menu />
           </button>
-          <div className="switch">
-            <button
-              className={view === 'student' ? 'on' : ''}
-              onClick={() => {
-                setView('student');
-                setSection('today');
-              }}
-            >
-              Deniz
-            </button>
-            <button
-              className={view === 'adult' ? 'on' : ''}
-              onClick={() => {
-                setView('adult');
-                setSection('today');
-              }}
-            >
-              Yetişkin & Koç
-            </button>
-          </div>
+          <div className="switch"><button className="on">{session.role === 'student' ? 'Deniz' : session.role === 'admin' ? 'Admin' : 'Koç & Öğretmen'}</button></div>
           <div className="topright">
             <span>
               <Flame /> 0 günlük seri
             </span>
             <b>S</b>
+            <button className="session-exit" onClick={() => void signOut()}>Çıkış</button>
           </div>
         </header>
         {section === 'progress' ? (
