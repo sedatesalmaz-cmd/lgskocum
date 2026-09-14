@@ -148,7 +148,7 @@ export default function Home() {
     fetch('/api/assignments')
       .then((r) => r.json())
       .then((data: { assignments?: Assignment[] }) => {
-        if (data.assignments?.length) setAssignments(data.assignments);
+        setAssignments(data.assignments ?? []);
       })
       .catch(() => {});
     fetch(`/api/study-results?from=${weekAgoKey}&to=${todayKey}`)
@@ -165,16 +165,32 @@ export default function Home() {
       .catch(() => {});
   }, [todayKey, weekAgoKey, session]);
   const addAssignment = async (item: Omit<Assignment, 'id'>) => {
-    const response = await fetch('/api/assignments', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(item),
-    });
-    if (!response.ok) return null;
-    const data = (await response.json()) as { assignment?: Assignment };
-    if (!data.assignment) return null;
-    setAssignments((current) => [data.assignment!, ...current]);
-    return data.assignment;
+    try {
+      const response = await fetch('/api/assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(item),
+      });
+      const data = (await response.json()) as { assignment?: Assignment; error?: string };
+      if (!response.ok || !data.assignment)
+        return { assignment: null, error: data.error ?? 'Ödev eklenemedi.' };
+      setAssignments((current) => [data.assignment!, ...current]);
+      return { assignment: data.assignment };
+    } catch {
+      return { assignment: null, error: 'Bağlantı kurulamadı. Lütfen tekrar deneyin.' };
+    }
+  };
+  const deleteAssignment = async (id: number) => {
+    try {
+      const response = await fetch(`/api/assignments?id=${id}`, { method: 'DELETE' });
+      const data = (await response.json()) as { ok?: boolean; error?: string };
+      if (!response.ok)
+        return { ok: false, error: data.error ?? 'Ödev iptal edilemedi.' };
+      setAssignments((current) => current.filter((item) => item.id !== id));
+      return { ok: true };
+    } catch {
+      return { ok: false, error: 'Bağlantı kurulamadı. Lütfen tekrar deneyin.' };
+    }
   };
   const undoResult = async (assignmentId: number) => {
     const response = await fetch(
@@ -584,7 +600,11 @@ export default function Home() {
             </div>
           )
         ) : section === 'assignments' ? (
-          <CoachWorkspace assignments={assignments} onAdd={addAssignment} />
+          <CoachWorkspace
+            assignments={assignments}
+            onAdd={addAssignment}
+            onDelete={deleteAssignment}
+          />
         ) : (
           <>
             <DailyCoachDashboard assignments={assignments} />

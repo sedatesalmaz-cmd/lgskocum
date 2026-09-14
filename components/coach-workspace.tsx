@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { BookOpen, CalendarDays, Check } from 'lucide-react';
+import { BookOpen, CalendarDays, Check, Trash2 } from 'lucide-react';
 import { BookPicker } from '@/components/book-picker';
 import { lgsCurriculum } from '@/lib/lgs-curriculum';
 import { isWeeklyTestBook, unitsForBook } from '@/lib/book-units';
@@ -19,9 +19,11 @@ export type Assignment = {
 export function CoachWorkspace({
   assignments,
   onAdd,
+  onDelete,
 }: {
   assignments: Assignment[];
-  onAdd: (item: Omit<Assignment, 'id'>) => Promise<Assignment | null>;
+  onAdd: (item: Omit<Assignment, 'id'>) => Promise<{ assignment: Assignment | null; error?: string }>;
+  onDelete: (id: number) => Promise<{ ok: boolean; error?: string }>;
 }) {
   const [subjectId, setSubjectId] = useState('matematik');
   const subject = lgsCurriculum.find((x) => x.id === subjectId)!;
@@ -34,9 +36,11 @@ export function CoachWorkspace({
     subject.units.find((x) => x.name === unitName) ?? subject.units[0];
   const [topic, setTopic] = useState(unit?.topics[0] ?? '');
   const [dueDate, setDueDate] = useState(new Date().toISOString().slice(0, 10));
-  const [questionCount, setQuestionCount] = useState(20);
+  const [questionCount, setQuestionCount] = useState<number | ''>(20);
   const [note, setNote] = useState('');
   const [saved, setSaved] = useState(false);
+  const [message, setMessage] = useState('');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const chooseSubject = (id: string) => {
     const next = lgsCurriculum.find((x) => x.id === id)!;
     setSubjectId(id);
@@ -68,20 +72,58 @@ export function CoachWorkspace({
     );
   };
   const add = async () => {
-    if (questionCount < 1) return;
-    const created = await onAdd({
+    if (questionCount === '' || questionCount < 1) {
+      setMessage('Soru hedefi en az 1 olmalıdır.');
+      return;
+    }
+    const normalizedBook = book || 'Kitap belirtilmedi';
+    const duplicate = assignments.some(
+      (item) =>
+        item.dueDate === dueDate &&
+        item.subjectId === subjectId &&
+        item.book === normalizedBook &&
+        item.unit === unitName &&
+        item.topic === topic,
+    );
+    if (duplicate) {
+      setMessage('Bu ödev aynı tarih, ders, kitap ve konu için zaten eklenmiş.');
+      return;
+    }
+    setMessage('');
+    const result = await onAdd({
       dueDate,
       subjectId,
       subject: subject.name,
-      book: book || 'Kitap belirtilmedi',
+      book: normalizedBook,
       unit: unitName,
       topic,
       questionCount,
       note,
     });
-    if (!created) return;
+    if (!result.assignment) {
+      setMessage(result.error ?? 'Ödev eklenemedi.');
+      return;
+    }
     setSaved(true);
+    const initial = lgsCurriculum.find((item) => item.id === 'matematik')!;
+    setSubjectId('matematik');
+    setBook('');
+    setUnitName(initial.units[0].name);
+    setTopic(initial.units[0].topics[0]);
+    setDueDate(new Date().toISOString().slice(0, 10));
+    setQuestionCount('');
+    setNote('');
     setTimeout(() => setSaved(false), 1400);
+  };
+  const cancelAssignment = async (id: number) => {
+    if (!window.confirm('Bu ödev öğrencinin rotasından kaldırılsın mı?')) return;
+    setDeletingId(id);
+    setMessage('');
+    const result = await onDelete(id);
+    setDeletingId(null);
+    setMessage(
+      result.ok ? 'Ödev iptal edildi.' : result.error ?? 'Ödev iptal edilemedi.',
+    );
   };
   return (
     <div className="page coach-workspace-page">
@@ -165,7 +207,11 @@ export function CoachWorkspace({
                 type="number"
                 min="1"
                 value={questionCount}
-                onChange={(e) => setQuestionCount(Number(e.target.value))}
+                onChange={(e) =>
+                  setQuestionCount(
+                    e.target.value === '' ? '' : Number(e.target.value),
+                  )
+                }
               />
             </label>
             <label className="wide">
@@ -177,6 +223,11 @@ export function CoachWorkspace({
               />
             </label>
           </div>
+          {message && (
+            <p className={message.includes('iptal edildi') ? 'entry-success' : 'entry-error'}>
+              {message}
+            </p>
+          )}
           <button
             className={`save-entry ${saved ? 'saved' : ''}`}
             onClick={add}
@@ -203,6 +254,16 @@ export function CoachWorkspace({
                     )}
                   </small>
                 </div>
+                <button
+                  type="button"
+                  className="cancel-assignment"
+                  onClick={() => void cancelAssignment(x.id)}
+                  disabled={deletingId === x.id}
+                  aria-label={`${x.subject} ödevini iptal et`}
+                >
+                  <Trash2 />
+                  {deletingId === x.id ? 'İptal ediliyor…' : 'İptal et'}
+                </button>
               </article>
             ))}
           </div>

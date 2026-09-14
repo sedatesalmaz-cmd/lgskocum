@@ -128,6 +128,7 @@ export const bookCatalog: BookCatalogEntry[] = [
       ),
       book('Fenomen Yayınları 8A', 'F8A', '#1478a0', '/books/fenomen.png'),
       book('Kontak Yayınları 36 Hafta Deneme', 'KON', '#7a58a6'),
+      book('Nartest Yayınları', 'NAR', '#e35d2f'),
     ],
   },
   {
@@ -139,17 +140,27 @@ export const bookCatalog: BookCatalogEntry[] = [
       book('Hız Yayınları A', 'HIZ', '#e52629', '/books/hiz.jpg'),
       book('Fenomen Yayınları', 'FEN', '#1478a0', '/books/fenomen.png'),
       book('Ankara Yayınları Güçlendiren', 'ANK', '#dc5b2c'),
+      book('Ankara Yayınları Deneme', 'ANK', '#dc5b2c'),
+      book('Ankara Yayınları Soru Bankası', 'ANK', '#dc5b2c'),
     ],
   },
   {
     subjectId: 'din',
     subjectName: 'Din Kültürü ve Ahlak Bilgisi',
-    books: [book('Ankara Yayınları Güçlendiren', 'ANK', '#dc5b2c')],
+    books: [
+      book('Ankara Yayınları Güçlendiren', 'ANK', '#dc5b2c'),
+      book('Ankara Yayınları Deneme', 'ANK', '#dc5b2c'),
+      book('Fenomen Yayınları', 'FEN', '#1478a0', '/books/fenomen.png'),
+      book('Ankara Yayınları Soru Bankası', 'ANK', '#dc5b2c'),
+    ],
   },
   {
     subjectId: 'ingilizce',
     subjectName: 'İngilizce',
-    books: [book('Hız Yayınları', 'HIZ', '#e52629', '/books/hiz.jpg')],
+    books: [
+      book('Hız Yayınları', 'HIZ', '#e52629', '/books/hiz.jpg'),
+      book('Ankara Yayınları', 'ANK', '#dc5b2c'),
+    ],
   },
 ];
 export const bookItemsForSubject = (subjectId: string) =>
