@@ -19,6 +19,7 @@ import {
   Play,
   Plus,
   RotateCcw,
+  ShieldCheck,
   Sparkles,
   Star,
   Target,
@@ -30,8 +31,8 @@ import { TopicsWorkspace } from '@/components/topics-workspace';
 import { CoachWorkspace, type Assignment } from '@/components/coach-workspace';
 import { WrongQuestionModal } from '@/components/wrong-question-modal';
 import { ProgressDashboard } from '@/components/progress-dashboard';
-import { currentWeekAssignments } from '@/lib/current-week-plan';
 import { QuestionCatalog } from '@/components/question-catalog';
+import { AdminPanel } from '@/components/admin-panel';
 import {
   StudyEntryModal,
   type StudyResult,
@@ -71,16 +72,14 @@ export default function Home() {
   const [wrongOpen, setWrongOpen] = useState(false);
   const [view, setView] = useState<'student' | 'adult'>('student');
   const [section, setSection] = useState<
-    'today' | 'topics' | 'assignments' | 'progress' | 'catalog'
+    'today' | 'topics' | 'assignments' | 'progress' | 'catalog' | 'admin'
   >('today');
   const [navOpen, setNavOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [saved, setSaved] = useState(false);
   const [count, setCount] = useState(0);
   const [wrong, setWrong] = useState(0);
-  const [assignments, setAssignments] = useState<Assignment[]>(
-    currentWeekAssignments,
-  );
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [selectedAssignment, setSelectedAssignment] =
     useState<Assignment | null>(null);
   const [studyResults, setStudyResults] = useState<Record<number, StudyResult>>(
@@ -243,16 +242,28 @@ export default function Home() {
             <i>Gelişim</i>
           </button>
           {view === 'adult' && (
-            <button
-              className={section === 'catalog' ? 'active' : ''}
-              onClick={() => {
-                setSection('catalog');
-                setNavOpen(false);
-              }}
-            >
-              <BookCheck />
-              <i>Soru Kataloğu</i>
-            </button>
+            <>
+              <button
+                className={section === 'catalog' ? 'active' : ''}
+                onClick={() => {
+                  setSection('catalog');
+                  setNavOpen(false);
+                }}
+              >
+                <BookCheck />
+                <i>Soru Kataloğu</i>
+              </button>
+              <button
+                className={section === 'admin' ? 'active' : ''}
+                onClick={() => {
+                  setSection('admin');
+                  setNavOpen(false);
+                }}
+              >
+                <ShieldCheck />
+                <i>Yönetim</i>
+              </button>
+            </>
           )}
           <button
             onClick={() => {
@@ -311,6 +322,13 @@ export default function Home() {
           />
         ) : section === 'catalog' && view === 'adult' ? (
           <QuestionCatalog />
+        ) : section === 'admin' && view === 'adult' ? (
+          <AdminPanel
+            onDataCleared={() => {
+              setAssignments([]);
+              setStudyResults({});
+            }}
+          />
         ) : view === 'student' ? (
           section === 'topics' ? (
             <TopicsWorkspace onWrong={() => setWrongOpen(true)} />

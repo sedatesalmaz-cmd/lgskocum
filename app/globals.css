@@ -5,6 +5,7 @@
 @import './wrong-question.css';
 @import './question-catalog.css';
 @import './daily-tracking.css';
+@import './admin-panel.css';
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';

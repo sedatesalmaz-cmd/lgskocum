@@ -3,56 +3,6 @@ import { env } from 'cloudflare:workers';
 import { requireMember } from '@/lib/server-auth';
 const db = (env as unknown as { DB: D1Database }).DB;
 const allowed = new Set(['in_progress', 'completed', 'review_needed']);
-const seeds = [
-  ['turkce', 'Türkçe', 'Fenomen 8-A Paragraf', 'LGS Dil Bilgisi ve Anlam'],
-  ['turkce', 'Türkçe', '6-A Paragraf', 'LGS Dil Bilgisi ve Anlam'],
-  [
-    'matematik',
-    'Matematik',
-    'Fenomen Yayınları 8A',
-    'Çarpanlar ve Katlar & Üslü İfadeler',
-  ],
-  [
-    'matematik',
-    'Matematik',
-    'Fenomen Yayınları 8B',
-    'Çarpanlar ve Katlar & Üslü İfadeler',
-  ],
-  [
-    'matematik',
-    'Matematik',
-    'Fenomen Yayınları Kök',
-    'Çarpanlar ve Katlar & Üslü İfadeler',
-  ],
-  [
-    'matematik',
-    'Matematik',
-    'MUBA Yayınları',
-    'Çarpanlar ve Katlar & Üslü İfadeler',
-  ],
-  [
-    'matematik',
-    'Matematik',
-    'Nartest Yayınları 36 Hafta Deneme',
-    'Çarpanlar ve Katlar & Üslü İfadeler',
-  ],
-  ['fen', 'Fen Bilimleri', 'MUBA Yayınları', 'Mevsimler ve İklim'],
-  ['fen', 'Fen Bilimleri', 'MUBA Yayınları', 'DNA ve Genetik Kod'],
-  ['fen', 'Fen Bilimleri', 'Fenomen Yayınları Kök', 'Mevsimler ve İklim'],
-  ['fen', 'Fen Bilimleri', 'Fenomen Yayınları Kök', 'DNA ve Genetik Kod'],
-  ['inkilap', 'İnkılap', 'Fenomen Yayınları', 'Bir Kahraman Doğuyor'],
-  [
-    'inkilap',
-    'İnkılap',
-    'Fenomen Yayınları',
-    'Millî Uyanış: Bağımsızlık Yolunda Atılan Adımlar',
-  ],
-  ['inkilap', 'İnkılap', 'Hız Yayınları A', 'Bir Kahraman Doğuyor'],
-  ['inkilap', 'İnkılap', 'Nartest Yayınları', 'Bir Kahraman Doğuyor'],
-  ['inkilap', 'İnkılap', 'Paraf Yayınları', 'Bir Kahraman Doğuyor'],
-  ['din', 'Din Kültürü', 'Ankara Yayınları Güçlendiren', 'Kader İnancı'],
-  ['ingilizce', 'İngilizce', 'Hız Yayınları', 'Unit 1: Friendship'],
-] as const;
 async function ensure() {
   await db
     .prepare(
@@ -64,20 +14,11 @@ async function ensure() {
       'CREATE UNIQUE INDEX IF NOT EXISTS uq_book_unit_progress ON book_unit_progress(subject_id,book,unit)',
     )
     .run();
-  await db.prepare("UPDATE book_unit_progress SET status='in_progress' WHERE status='not_started'").run();
-  const row = await db
-    .prepare('SELECT COUNT(*) count FROM book_unit_progress')
-    .first<{ count: number }>();
-  if (Number(row?.count ?? 0) === 0) {
-    const now = new Date().toISOString();
-    for (const item of seeds)
-      await db
-        .prepare(
-          'INSERT OR IGNORE INTO book_unit_progress(subject_id,subject,book,unit,status,progress,updated_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)',
-        )
-        .bind(...item, 'completed', 100, 'geçmiş veri aktarımı', now, now)
-        .run();
-  }
+  await db
+    .prepare(
+      "UPDATE book_unit_progress SET status='in_progress' WHERE status='not_started'",
+    )
+    .run();
 }
 export async function GET(request: Request) {
   try {
@@ -129,7 +70,10 @@ export async function POST(request: Request) {
       { error: 'Eksik veya geçersiz bilgi.' },
       { status: 400 },
     );
-  const progress = body.status === 'completed' ? 100 : Math.max(0, Math.min(99, Number(body.progress ?? 50)));
+  const progress =
+    body.status === 'completed'
+      ? 100
+      : Math.max(0, Math.min(99, Number(body.progress ?? 50)));
   const now = new Date().toISOString();
   await db
     .prepare(

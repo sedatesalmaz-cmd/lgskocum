@@ -1,5 +1,3 @@
-import { currentWeekAssignments } from '@/lib/current-week-plan';
-
 export async function ensureAssignments(db: D1Database) {
   await db
     .prepare(
@@ -22,25 +20,4 @@ export async function ensureAssignments(db: D1Database) {
       'CREATE INDEX IF NOT EXISTS idx_assignments_due_date ON assignments(due_date)',
     )
     .run();
-  const now = new Date().toISOString();
-  await db.batch(
-    currentWeekAssignments.map((item) =>
-      db
-        .prepare(
-          'INSERT OR IGNORE INTO assignments(id,due_date,subject_id,subject,book,unit,topic,question_count,note,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)',
-        )
-        .bind(
-          item.id,
-          item.dueDate,
-          item.subjectId,
-          item.subject,
-          item.book,
-          item.unit,
-          item.topic,
-          item.questionCount,
-          item.note,
-          now,
-        ),
-    ),
-  );
 }
