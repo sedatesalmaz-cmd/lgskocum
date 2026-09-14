@@ -27,6 +27,7 @@ type Entry = {
 export function TopicsWorkspace({ onWrong }: { onWrong?: () => void }) {
   const [subjectId, setSubjectId] = useState('matematik');
   const subject = lgsCurriculum.find((item) => item.id === subjectId)!;
+  const isParagraph = subjectId === 'paragraf';
   const [unitName, setUnitName] = useState('');
   const unit = subject.units.find((item) => item.name === unitName);
   const [topic, setTopic] = useState('');
@@ -101,7 +102,7 @@ export function TopicsWorkspace({ onWrong }: { onWrong?: () => void }) {
   };
 
   const saveEntry = async () => {
-    if (!unit || !topic || total < 1 || wrong + blank > total) return;
+    if ((!isParagraph && (!unit || !topic)) || total < 1 || wrong + blank > total) return;
     setBusy(true);
     setMessage('');
     try {
@@ -112,8 +113,8 @@ export function TopicsWorkspace({ onWrong }: { onWrong?: () => void }) {
           assignmentId: null,
           studyDate: date,
           subjectId,
-          unit: unit.name,
-          topic,
+          unit: isParagraph ? '' : unit!.name,
+          topic: isParagraph ? '' : topic,
           book: book || 'Kitap seçilmedi',
           total,
           correct,
@@ -131,8 +132,8 @@ export function TopicsWorkspace({ onWrong }: { onWrong?: () => void }) {
           id: data.id ?? Date.now(),
           date,
           subject: subject.name,
-          unit: unit.name,
-          topic,
+          unit: isParagraph ? '' : unit!.name,
+          topic: isParagraph ? '' : topic,
           book: book || 'Kitap seçilmedi',
           total,
           correct,
@@ -175,7 +176,7 @@ export function TopicsWorkspace({ onWrong }: { onWrong?: () => void }) {
           >
             <span>{item.icon}</span>
             <b>{item.shortName}</b>
-            <small>{item.units.length} bölüm</small>
+            <small>{item.id === 'paragraf' ? 'ünitesiz' : `${item.units.length} bölüm`}</small>
           </button>
         ))}
       </div>
@@ -185,14 +186,20 @@ export function TopicsWorkspace({ onWrong }: { onWrong?: () => void }) {
           <div className="topic-panel-head">
             <div>
               <p className="eyebrow">{subject.name.toUpperCase()}</p>
-              <h2>Ünite ve konular</h2>
+              <h2>{isParagraph ? 'Doğrudan soru girişi' : 'Ünite ve konular'}</h2>
             </div>
             <span>
-              {subject.units.reduce((sum, item) => sum + item.topics.length, 0)}{' '}
-              konu
+              {isParagraph ? 'Ünite seçimi yok' : `${subject.units.reduce((sum, item) => sum + item.topics.length, 0)} konu`}
             </span>
           </div>
           <div className="unit-list">
+            {isParagraph && (
+              <article className="open">
+                <div className="unit-button">
+                  <span><b>Paragraf çalışması</b><small>Kitabını seç ve soru sayını gir</small></span>
+                </div>
+              </article>
+            )}
             {subject.units.map((item) => (
               <article
                 key={item.name}
@@ -233,7 +240,7 @@ export function TopicsWorkspace({ onWrong }: { onWrong?: () => void }) {
           </div>
         </section>
 
-        {unit && topic ? (
+        {isParagraph || (unit && topic) ? (
           <aside className="entry-panel">
             <span
               className="entry-icon"
@@ -242,9 +249,9 @@ export function TopicsWorkspace({ onWrong }: { onWrong?: () => void }) {
               {subject.icon}
             </span>
             <p className="eyebrow">GEÇMİŞ VEYA BUGÜNKÜ ÇALIŞMA</p>
-            <h2>{topic}</h2>
+            <h2>{isParagraph ? 'Paragraf çalışması' : topic}</h2>
             <p className="entry-unit">
-              {subject.name} · {unit.name}
+              {isParagraph ? subject.name : `${subject.name} · ${unit!.name}`}
             </p>
             <label>
               <span>
@@ -337,7 +344,7 @@ export function TopicsWorkspace({ onWrong }: { onWrong?: () => void }) {
                 )}
               </span>
               <div>
-                <b>{entry.topic}</b>
+                <b>{entry.topic || 'Paragraf çalışması'}</b>
                 <small>
                   {entry.subject} · {entry.book}
                 </small>

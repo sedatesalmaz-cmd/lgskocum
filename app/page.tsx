@@ -41,6 +41,7 @@ import { DailyCoachDashboard } from '@/components/daily-coach-dashboard';
 import { AccessGate, type UserSession } from '@/components/access-gate';
 
 const subjects = [
+  ['Paragraf', '¶', '#ef725f', '#ffebe6', 0],
   ['Matematik', 'π', '#7357c7', '#eee9fb', 0],
   ['Türkçe', 'Aa', '#ef725f', '#ffebe6', 0],
   ['Fen', '⚗', '#238e89', '#dff4ef', 0],

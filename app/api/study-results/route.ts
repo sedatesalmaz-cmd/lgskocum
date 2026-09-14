@@ -92,8 +92,7 @@ export async function POST(request: Request) {
   if (
     !body.studyDate ||
     !body.subjectId ||
-    !body.unit ||
-    !body.topic ||
+    (body.subjectId !== 'paragraf' && (!body.unit || !body.topic)) ||
     body.total <= 0 ||
     body.correct + body.wrong + body.blank !== body.total
   )

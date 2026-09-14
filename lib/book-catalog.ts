@@ -153,7 +153,9 @@ export const bookCatalog: BookCatalogEntry[] = [
   },
 ];
 export const bookItemsForSubject = (subjectId: string) =>
-  bookCatalog.find((entry) => entry.subjectId === subjectId)?.books ?? [];
+  bookCatalog.find(
+    (entry) => entry.subjectId === (subjectId === 'paragraf' ? 'turkce' : subjectId),
+  )?.books ?? [];
 export const booksForSubject = (subjectId: string) =>
   bookItemsForSubject(subjectId).map((item) => item.name);
 export const findBook = (subjectId: string, name: string) =>

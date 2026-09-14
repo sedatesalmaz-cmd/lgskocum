@@ -55,8 +55,7 @@ export async function POST(request: Request) {
     !body.dueDate ||
     !body.subjectId ||
     !body.subject ||
-    !body.unit ||
-    !body.topic ||
+    (body.subjectId !== 'paragraf' && (!body.unit || !body.topic)) ||
     Number(body.questionCount) < 1
   )
     return NextResponse.json(

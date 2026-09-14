@@ -25,13 +25,14 @@ export function CoachWorkspace({
 }) {
   const [subjectId, setSubjectId] = useState('matematik');
   const subject = lgsCurriculum.find((x) => x.id === subjectId)!;
-  const [unitName, setUnitName] = useState(subject.units[0].name);
+  const isParagraph = subjectId === 'paragraf';
+  const [unitName, setUnitName] = useState(subject.units[0]?.name ?? '');
   const [book, setBook] = useState('');
   const weeklyTest = isWeeklyTestBook(book);
   const availableUnits = unitsForBook(subjectId, book);
   const unit =
     subject.units.find((x) => x.name === unitName) ?? subject.units[0];
-  const [topic, setTopic] = useState(unit.topics[0]);
+  const [topic, setTopic] = useState(unit?.topics[0] ?? '');
   const [dueDate, setDueDate] = useState(new Date().toISOString().slice(0, 10));
   const [questionCount, setQuestionCount] = useState(20);
   const [note, setNote] = useState('');
@@ -39,8 +40,8 @@ export function CoachWorkspace({
   const chooseSubject = (id: string) => {
     const next = lgsCurriculum.find((x) => x.id === id)!;
     setSubjectId(id);
-    setUnitName(next.units[0].name);
-    setTopic(next.units[0].topics[0]);
+    setUnitName(next.units[0]?.name ?? '');
+    setTopic(next.units[0]?.topics[0] ?? '');
     setBook('');
   };
   const chooseUnit = (name: string) => {
@@ -55,6 +56,11 @@ export function CoachWorkspace({
   };
   const chooseBook = (name: string) => {
     setBook(name);
+    if (isParagraph) {
+      setUnitName('');
+      setTopic('');
+      return;
+    }
     const nextUnits = unitsForBook(subjectId, name);
     setUnitName(nextUnits[0] ?? subject.units[0].name);
     setTopic(
@@ -121,29 +127,27 @@ export function CoachWorkspace({
                 onChange={chooseBook}
               />
             </label>
-            <label>
+            {!isParagraph && <label>
               Ünite
-              <select
-                value={unitName}
-                onChange={(e) => chooseUnit(e.target.value)}
-              >
-                {availableUnits.map((name) => (
-                  <option key={name}>{name}</option>
-                ))}
+              <select value={unitName} onChange={(e) => chooseUnit(e.target.value)}>
+                {availableUnits.map((name) => <option key={name}>{name}</option>)}
               </select>
-            </label>
-            {!weeklyTest && (
+            </label>}
+            {!isParagraph && !weeklyTest && (
               <label>
                 Konu
                 <select
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                 >
-                  {unit.topics.map((x) => (
+                  {unit?.topics.map((x) => (
                     <option key={x}>{x}</option>
                   ))}
                 </select>
               </label>
+            )}
+            {isParagraph && (
+              <p className="wide entry-unit">Paragraf ödevinde ünite ve konu seçilmez.</p>
             )}
             <label>
               <span>
@@ -191,7 +195,7 @@ export function CoachWorkspace({
               <article key={x.id}>
                 <span>{x.subject}</span>
                 <div>
-                  <strong>{x.topic}</strong>
+                  <strong>{x.topic || 'Paragraf çalışması'}</strong>
                   <small>
                     {x.book} · {x.questionCount} soru ·{' '}
                     {new Date(`${x.dueDate}T12:00:00`).toLocaleDateString(

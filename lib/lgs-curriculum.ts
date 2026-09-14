@@ -2,6 +2,7 @@ export type CurriculumUnit = { name: string; topics: string[] };
 export type CurriculumSubject = { id: string; name: string; shortName: string; icon: string; color: string; units: CurriculumUnit[] };
 
 export const lgsCurriculum: CurriculumSubject[] = [
+  { id: 'paragraf', name: 'Paragraf', shortName: 'Paragraf', icon: '¶', color: '#ef725f', units: [] },
   { id: 'turkce', name: 'Türkçe', shortName: 'Türkçe', icon: 'Aa', color: '#ef725f', units: [
     { name: 'İletişim ve Sosyal İlişkiler', topics: ['Genel Ağ', 'Sosyal Medya', 'Dijital İçerik Üretimi', 'Dijital Yenilikler'] },
     { name: 'Vatan Sevgisi', topics: ['Atatürk, İstiklal Marşı, Millî İrade ve Millî Kimlik', 'Vatanseverlik, Gazilik, Şehitlik ve Ülke Varlıklarına Sahip Çıkma', 'Sarıkamış Harekâtı, Kut’ül Amare ve 15 Temmuz'] },
