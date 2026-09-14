@@ -72,6 +72,10 @@ function Ring({ value }: { value: number }) {
 export default function Home() {
   const [session, setSession] = useState<UserSession | null>(null);
   const [wrongOpen, setWrongOpen] = useState(false);
+  const [wrongContext, setWrongContext] = useState<{
+    assignment: Assignment;
+    studyResultId: number;
+  } | null>(null);
   const [view, setView] = useState<'student' | 'adult'>('student');
   const [section, setSection] = useState<
     'today' | 'topics' | 'assignments' | 'progress' | 'catalog' | 'admin'
@@ -97,6 +101,15 @@ export default function Home() {
     setSession(null);
     setAssignments([]);
     setStudyResults({});
+  };
+  const openWrongQuestion = (
+    assignment?: Assignment,
+    studyResultId?: number,
+  ) => {
+    setWrongContext(
+      assignment && studyResultId ? { assignment, studyResultId } : null,
+    );
+    setWrongOpen(true);
   };
   const todayKey = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Europe/Istanbul',
@@ -348,7 +361,7 @@ export default function Home() {
           />
         ) : view === 'student' ? (
           section === 'topics' ? (
-            <TopicsWorkspace onWrong={() => setWrongOpen(true)} />
+            <TopicsWorkspace onWrong={() => openWrongQuestion()} />
           ) : (
             <div className="page student-visual">
               <div className="welcome student-welcome">
@@ -591,7 +604,7 @@ export default function Home() {
                       Fotoğrafını çek, konusunu seç. Koçun görsün; zamanı
                       gelince tekrar karşına çıksın.
                     </p>
-                    <button onClick={() => setWrongOpen(true)}>
+                    <button onClick={() => openWrongQuestion()}>
                       <ImagePlus /> Fotoğrafla soru ekle
                     </button>
                   </div>
@@ -772,7 +785,12 @@ export default function Home() {
       )}
       <WrongQuestionModal
         open={wrongOpen}
-        onClose={() => setWrongOpen(false)}
+        assignment={wrongContext?.assignment}
+        studyResultId={wrongContext?.studyResultId}
+        onClose={() => {
+          setWrongOpen(false);
+          setWrongContext(null);
+        }}
       />
       {selectedAssignment && (
         <StudyEntryModal
@@ -783,9 +801,11 @@ export default function Home() {
           }
           onClose={() => setSelectedAssignment(null)}
           onSaved={(result) => {
+            const assignment = selectedAssignment;
             setStudyResults((x) => ({ ...x, [result.assignmentId]: result }));
             setSelectedAssignment(null);
-            if (result.wrong > 0) setWrongOpen(true);
+            if (result.wrong > 0)
+              openWrongQuestion(assignment, result.id);
           }}
         />
       )}

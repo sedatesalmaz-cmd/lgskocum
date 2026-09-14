@@ -1,2 +1,80 @@
-import {NextResponse} from 'next/server';import {env} from 'cloudflare:workers';import {requireMember} from '@/lib/server-auth';const allowedTypes=new Set(['image/jpeg','image/png','image/webp']);function toBase64(buffer:ArrayBuffer){const bytes=new Uint8Array(buffer);let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(binary)}
-export async function POST(request:Request){try{await requireMember(request,env.DB,['student','guardian','coach']);const form=await request.formData();const image=form.get('image');if(!(image instanceof File))return NextResponse.json({error:'Bir soru fotoğrafı seçin.'},{status:400});if(!allowedTypes.has(image.type)||image.size>6*1024*1024)return NextResponse.json({error:'Fotoğraf JPG, PNG veya WEBP olmalı ve 6 MB’ı aşmamalı.'},{status:400});if(form.get('privacyConfirmed')!=='true')return NextResponse.json({error:'Kişisel bilgi kontrolünü onaylayın.'},{status:400});const subject=String(form.get('subject')||''),subjectId=String(form.get('subjectId')||''),unit=String(form.get('unit')||''),topic=String(form.get('topic')||''),answer=String(form.get('answer')||''),correctAnswer=String(form.get('correctAnswer')||'');if(!subject||!unit||!topic)return NextResponse.json({error:'Ders, ünite ve konu zorunludur.'},{status:400});const apiKey=process.env.GEMINI_API_KEY;if(!apiKey)return NextResponse.json({error:'Gemini anahtarı bulunamadı.'},{status:503});const buffer=await image.arrayBuffer();const response=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent',{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':apiKey},body:JSON.stringify({contents:[{parts:[{text:`Anonim LGS yanlış sorusu. Ders: ${subject}; ünite: ${unit}; konu: ${topic}; verilen cevap: ${answer||'yok'}; doğru cevap: ${correctAnswer||'yok'}. Kişisel bilgi görürsen analiz yapma. Aksi halde 120 kelimeyi aşmadan soru türü, olası hata nedeni, kısa çözüm yaklaşımı ve benzer soruda dikkat edilecek noktayı yaz.`},{inline_data:{mime_type:image.type,data:toBase64(buffer)}}]}],generationConfig:{temperature:.2,maxOutputTokens:350}})});if(!response.ok)return NextResponse.json({error:'Gemini görseli analiz edemedi.'},{status:502});const data=await response.json();const analysis=data.candidates?.[0]?.content?.parts?.map((p:{text?:string})=>p.text??'').join('').trim();if(!analysis)return NextResponse.json({error:'Analiz üretilemedi.'},{status:502});const imageKey=`wrong-questions/${new Date().toISOString().slice(0,10)}/${crypto.randomUUID()}`;await env.UPLOADS.put(imageKey,buffer,{httpMetadata:{contentType:image.type}});await env.DB.prepare('INSERT INTO wrong_questions (subject_id, unit, topic, image_key, analysis, created_at) VALUES (?, ?, ?, ?, ?, ?)').bind(subjectId,unit,topic,imageKey,analysis,new Date().toISOString()).run();return NextResponse.json({analysis})}catch(error){if(error instanceof Response)return NextResponse.json({error:await error.text()},{status:error.status});return NextResponse.json({error:'Soru kaydedilemedi.'},{status:500})}}
+import { NextResponse } from 'next/server';
+import { env } from 'cloudflare:workers';
+import { requireMember } from '@/lib/server-auth';
+
+const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+function toBase64(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 8192)
+    binary += String.fromCharCode(...bytes.subarray(i, i + 8192));
+  return btoa(binary);
+}
+
+export async function POST(request: Request) {
+  try {
+    await requireMember(request, env.DB, ['student', 'guardian', 'coach']);
+    const form = await request.formData();
+    const image = form.get('image');
+    if (!(image instanceof File))
+      return NextResponse.json({ error: 'Bir soru fotoğrafı seçin.' }, { status: 400 });
+    if (!allowedTypes.has(image.type) || image.size > 6 * 1024 * 1024)
+      return NextResponse.json({ error: 'Fotoğraf JPG, PNG veya WEBP olmalı ve 6 MB’ı aşmamalı.' }, { status: 400 });
+    if (form.get('privacyConfirmed') !== 'true')
+      return NextResponse.json({ error: 'Kişisel bilgi kontrolünü onaylayın.' }, { status: 400 });
+
+    const subject = String(form.get('subject') || '');
+    const subjectId = String(form.get('subjectId') || '');
+    const unit = String(form.get('unit') || '');
+    const topic = String(form.get('topic') || '');
+    const answer = String(form.get('answer') || '');
+    const correctAnswer = String(form.get('correctAnswer') || '');
+    const studyResultId = Number(form.get('studyResultId')) || null;
+    if (!subject || !subjectId || (subjectId !== 'paragraf' && (!unit || !topic)))
+      return NextResponse.json({ error: 'Ders, ünite ve konu bilgileri eksik.' }, { status: 400 });
+
+    const buffer = await image.arrayBuffer();
+    let analysis: string | null = null;
+    let analysisStatus: 'completed' | 'unavailable' = 'unavailable';
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (apiKey) {
+      try {
+        const model = process.env.GEMINI_MODEL || 'gemini-3.6-flash';
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+            body: JSON.stringify({
+              contents: [{ parts: [
+                { text: `Anonim LGS yanlış sorusu. Ders: ${subject}; ünite: ${unit || 'yok'}; konu: ${topic || 'yok'}; verilen cevap: ${answer || 'yok'}; doğru cevap: ${correctAnswer || 'yok'}. Kişisel bilgi görürsen analiz yapma. Aksi halde 120 kelimeyi aşmadan soru türü, olası hata nedeni, kısa çözüm yaklaşımı ve benzer soruda dikkat edilecek noktayı yaz.` },
+                { inline_data: { mime_type: image.type, data: toBase64(buffer) } },
+              ] }],
+              generationConfig: { temperature: 0.2, maxOutputTokens: 350 },
+            }),
+          },
+        );
+        if (response.ok) {
+          const data = await response.json();
+          analysis = data.candidates?.[0]?.content?.parts
+            ?.map((part: { text?: string }) => part.text ?? '')
+            .join('').trim() || null;
+          if (analysis) analysisStatus = 'completed';
+        }
+      } catch {
+        analysis = null;
+      }
+    }
+
+    const imageKey = `wrong-questions/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}`;
+    await env.UPLOADS.put(imageKey, buffer, { httpMetadata: { contentType: image.type } });
+    await env.DB.prepare(
+      'INSERT INTO wrong_questions (study_result_id, subject_id, unit, topic, image_key, analysis, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    ).bind(studyResultId, subjectId, unit, topic, imageKey, analysis, new Date().toISOString()).run();
+    return NextResponse.json({ saved: true, analysis, analysisStatus });
+  } catch (error) {
+    if (error instanceof Response)
+      return NextResponse.json({ error: await error.text() }, { status: error.status });
+    return NextResponse.json({ error: 'Soru kaydedilemedi.' }, { status: 500 });
+  }
+}

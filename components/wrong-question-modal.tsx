@@ -3,12 +3,17 @@ import { useEffect, useState } from 'react';
 import { Camera, Check, ImagePlus, RotateCcw, Sparkles, X } from 'lucide-react';
 import { BookPicker } from '@/components/book-picker';
 import { lgsCurriculum } from '@/lib/lgs-curriculum';
+import type { Assignment } from '@/components/coach-workspace';
 export function WrongQuestionModal({
   open,
   onClose,
+  assignment,
+  studyResultId,
 }: {
   open: boolean;
   onClose: () => void;
+  assignment?: Assignment | null;
+  studyResultId?: number | null;
 }) {
   const [file, setFile] = useState<File | null>(null),
     [preview, setPreview] = useState(''),
@@ -17,15 +22,18 @@ export function WrongQuestionModal({
     [answer, setAnswer] = useState(''),
     [correctAnswer, setCorrectAnswer] = useState(''),
     [analysis, setAnalysis] = useState(''),
+    [saved, setSaved] = useState(false),
+    [analysisAvailable, setAnalysisAvailable] = useState(false),
     [error, setError] = useState('');
   const [rotation, setRotation] = useState(0),
     [consent, setConsent] = useState(false),
     [loading, setLoading] = useState(false);
   const subject = lgsCurriculum.find((x) => x.id === subjectId)!;
-  const [unitName, setUnitName] = useState(subject.units[0].name);
+  const isParagraph = subjectId === 'paragraf';
+  const [unitName, setUnitName] = useState(subject.units[0]?.name ?? '');
   const unit =
     subject.units.find((x) => x.name === unitName) ?? subject.units[0];
-  const [topic, setTopic] = useState(unit.topics[0]);
+  const [topic, setTopic] = useState(unit?.topics[0] ?? '');
   useEffect(() => {
     if (!file) {
       setPreview('');
@@ -35,12 +43,24 @@ export function WrongQuestionModal({
     setPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [file]);
+  useEffect(() => {
+    if (!open) return;
+    setSaved(false);
+    setAnalysis('');
+    setAnalysisAvailable(false);
+    setError('');
+    if (!assignment) return;
+    setSubjectId(assignment.subjectId);
+    setBook(assignment.book === 'Kitap belirtilmedi' ? '' : assignment.book);
+    setUnitName(assignment.unit);
+    setTopic(assignment.topic);
+  }, [open, assignment]);
   if (!open) return null;
   const chooseSubject = (id: string) => {
     const next = lgsCurriculum.find((x) => x.id === id)!;
     setSubjectId(id);
-    setUnitName(next.units[0].name);
-    setTopic(next.units[0].topics[0]);
+    setUnitName(next.units[0]?.name ?? '');
+    setTopic(next.units[0]?.topics[0] ?? '');
     setBook('');
   };
   const chooseUnit = (name: string) => {
@@ -57,14 +77,15 @@ export function WrongQuestionModal({
     for (const [key, value] of Object.entries({
       subjectId,
       subject: subject.name,
-      unit: unit.name,
-      topic,
+      unit: isParagraph ? '' : unit?.name ?? '',
+      topic: isParagraph ? '' : topic,
       book: book || 'Kitap belirtilmedi',
       answer,
       correctAnswer,
       privacyConfirmed: 'true',
     }))
       form.append(key, value);
+    if (studyResultId) form.append('studyResultId', String(studyResultId));
     try {
       const response = await fetch('/api/wrong-questions', {
         method: 'POST',
@@ -72,7 +93,9 @@ export function WrongQuestionModal({
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Soru kaydedilemedi.');
-      setAnalysis(data.analysis);
+      setAnalysis(data.analysis ?? '');
+      setAnalysisAvailable(data.analysisStatus === 'completed');
+      setSaved(true);
     } catch (reason) {
       setError(
         reason instanceof Error ? reason.message : 'Soru kaydedilemedi.',
@@ -99,16 +122,22 @@ export function WrongQuestionModal({
             <h2>Takıldığın soruyu ekle</h2>
           </div>
         </div>
-        {analysis ? (
+        {saved ? (
           <div className="analysis-result">
             <span>
               <Sparkles />
             </span>
-            <p className="eyebrow">YAPAY ZEKÂ BRANŞ KOÇU ANALİZİ</p>
+            <p className="eyebrow">
+              {analysisAvailable ? 'YAPAY ZEKÂ BRANŞ KOÇU ANALİZİ' : 'YANLIŞ DEFTERİ KAYDI'}
+            </p>
             <h3>
-              {subject.name} · {topic}
+              {subject.name}{topic ? ` · ${topic}` : ''}
             </h3>
-            <p>{analysis}</p>
+            <p>
+              {analysisAvailable
+                ? analysis
+                : 'Fotoğraf yanlış defterine kaydedildi. Gemini analizi şu anda kullanılamıyor; koçunuz kaydı yine de görebilir.'}
+            </p>
             <button onClick={onClose}>
               <Check /> Yanlış defterine kaydedildi
             </button>
@@ -165,28 +194,18 @@ export function WrongQuestionModal({
                   Kitap
                   <BookPicker subjectId={subjectId} value={book} onChange={setBook} />
                 </label>
-                <label>
+                {!isParagraph && <label>
                   Ünite
-                  <select
-                    value={unit.name}
-                    onChange={(e) => chooseUnit(e.target.value)}
-                  >
-                    {subject.units.map((x) => (
-                      <option key={x.name}>{x.name}</option>
-                    ))}
+                  <select value={unit?.name ?? ''} onChange={(e) => chooseUnit(e.target.value)}>
+                    {subject.units.map((x) => <option key={x.name}>{x.name}</option>)}
                   </select>
-                </label>
-                <label>
+                </label>}
+                {!isParagraph && <label>
                   Konu
-                  <select
-                    value={topic}
-                    onChange={(e) => setTopic(e.target.value)}
-                  >
-                    {unit.topics.map((x) => (
-                      <option key={x}>{x}</option>
-                    ))}
+                  <select value={topic} onChange={(e) => setTopic(e.target.value)}>
+                    {unit?.topics.map((x) => <option key={x}>{x}</option>)}
                   </select>
-                </label>
+                </label>}
                 <label>
                   Benim cevabım
                   <input
@@ -213,7 +232,7 @@ export function WrongQuestionModal({
               />
               <span>
                 <b>Fotoğrafı kontrol ettim.</b> Ad, okul, telefon veya başka
-                kişisel bilgi görünmüyor. Gemini analizini onaylıyorum.
+                kişisel bilgi görünmüyor. Kaydı ve mümkünse Gemini analizini onaylıyorum.
               </span>
             </label>
             {error && <p className="entry-error">{error}</p>}
@@ -225,7 +244,7 @@ export function WrongQuestionModal({
               <Sparkles />
               {loading
                 ? 'Soru inceleniyor…'
-                : 'Analiz et ve yanlış defterine ekle'}
+                : 'Yanlış defterine ekle ve analiz et'}
             </button>
           </>
         )}
