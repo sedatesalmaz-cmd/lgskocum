@@ -38,6 +38,7 @@ import {
   type StudyResult,
 } from '@/components/study-entry-modal';
 import { DailyCoachDashboard } from '@/components/daily-coach-dashboard';
+import { WeeklyReportPanel } from '@/components/weekly-report-panel';
 import { AccessGate, type UserSession } from '@/components/access-gate';
 
 const subjects = [
@@ -621,109 +622,7 @@ export default function Home() {
         ) : (
           <>
             <DailyCoachDashboard assignments={assignments} />
-            <div className="page">
-              <div className="welcome">
-                <div>
-                  <p className="eyebrow">
-                    HAFTALIK DEĞERLENDİRME · VERİ BEKLENİYOR
-                  </p>
-                  <h1>
-                    Deniz’in haftası <span>bir bakışta.</span>
-                  </h1>
-                </div>
-                <button
-                  className="outline"
-                  onClick={() => setSection('assignments')}
-                >
-                  Ödev ver <ArrowRight />
-                </button>
-              </div>
-              <section className="summaries">
-                <Summary
-                  icon={<BookOpen />}
-                  cls="violetbg"
-                  label="ÇÖZÜLEN SORU"
-                  value="0"
-                  detail="Veri yok"
-                />
-                <Summary
-                  icon={<Target />}
-                  cls="coralbg"
-                  label="HAFTALIK DOĞRULUK"
-                  value="%0"
-                  detail="Veri yok"
-                />
-                <Summary
-                  icon={<GraduationCap />}
-                  cls="tealbg"
-                  label="HAZIR KONULAR"
-                  value="0 / 0"
-                  detail="Veri yok"
-                />
-              </section>
-              <section className="adultgrid">
-                <article className="coachpanel">
-                  <Heading
-                    kicker="BRANŞ KOÇLARI"
-                    title="Uzman değerlendirmeleri"
-                    color="violet"
-                    extra={<span className="done">6 branş</span>}
-                  />
-                  <div className="coachtabs">
-                    {coaches.map((c, i) => (
-                      <button
-                        key={c[1]}
-                        className={i === 0 ? 'selected' : ''}
-                        style={{ '--coach': c[4] } as React.CSSProperties}
-                      >
-                        <span>{c[0]}</span>
-                        <div>
-                          <b>{c[1]}</b>
-                          <small>Veri bekleniyor</small>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="evaluation">
-                    <div className="evalhead">
-                      <span className="coachavatar large">—</span>
-                      <div>
-                        <small>HAFTALIK RAPOR</small>
-                        <h3>Henüz değerlendirme oluşturulmadı</h3>
-                      </div>
-                    </div>
-                    <p>
-                      Gerçek çalışma verileri girilip hafta kapatıldığında branş
-                      raporları burada görünecek.
-                    </p>
-                  </div>
-                </article>
-                <aside className="readiness">
-                  <Heading
-                    kicker="KONU HARİTASI"
-                    title="Hazır oluş"
-                    color="coral"
-                  />
-                  {subjects.map((s) => (
-                    <div className="subject" key={s[0]}>
-                      <span style={{ background: s[3], color: s[2] }}>
-                        {s[1]}
-                      </span>
-                      <div>
-                        <b>{s[0]}</b>
-                        <i>
-                          <u style={{ width: `${s[4]}%`, background: s[2] }} />
-                        </i>
-                      </div>
-                      <strong>{s[4]}</strong>
-                    </div>
-                  ))}
-                  <button className="link">
-                    Tüm konu haritası <ArrowRight />
-                  </button>
-                </aside>
-              </section>
-            </div>
+            <div className="page"><WeeklyReportPanel /></div>
           </>
         )}
       </section>
