@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { BarChart3, CheckCircle2, Sparkles } from 'lucide-react';
 import { lgsCurriculum } from '@/lib/lgs-curriculum';
 import { currentReportDate, reportWeek } from '@/lib/report-week';
+import { QuestionPhotoGallery } from '@/components/question-photo-gallery';
 type Stats = { subjectId: string; solved: number; correct: number; wrong: number; blank: number; topicCount: number };
 type Report = { status: string; generalSummary: string; branchReports: Array<{ subject: string; report: string }>; createdAt: string };
 type WeeklyData = { subjects: Stats[]; photoCount: number; report: Report | null; error?: string };
@@ -12,6 +13,7 @@ export function WeeklyReportPanel() {
   const { weekStart, weekEnd } = reportWeek(date);
   const [data, setData] = useState<WeeklyData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [error, setError] = useState('');
   const refresh = useCallback(async () => {
     try {
@@ -66,7 +68,7 @@ export function WeeklyReportPanel() {
       <article><span>Çözülen soru</span><b>{data ? totals.solved : '—'}</b></article>
       <article className="success"><span>Doğruluk</span><b>{data ? '%' + accuracy : '—'}</b><small>Doğru / toplam soru</small></article>
       <article><span>Çalışılan konu</span><b>{data ? totals.topics : '—'}</b><small>Hazır oluş puanı değildir</small></article>
-      <article><span>Soru fotoğrafı</span><b>{data ? data.photoCount : '—'}</b></article>
+      <article><button className="photo-gallery-open" disabled={!data} onClick={() => setGalleryOpen(true)}><span>Soru fotoğrafı</span><b>{data ? data.photoCount : '—'}</b><small>Fotoğrafları gör</small></button></article>
     </section>
     <div className="branch-reports">
       {lgsCurriculum.map(subject => {
@@ -90,5 +92,6 @@ export function WeeklyReportPanel() {
       <small>{new Date(report.createdAt).toLocaleString('tr-TR')} tarihinde oluşturuldu. Sonradan giriş yapıldıysa raporu yeniden oluşturun.</small>
       <div className="branch-reports">{report.branchReports.map(item => <details key={item.subject}><summary>{item.subject} değerlendirmesi</summary><p>{item.report}</p></details>)}</div>
     </div>}
+    {galleryOpen && <QuestionPhotoGallery key={weekStart} from={weekStart} to={weekEnd} onClose={() => setGalleryOpen(false)} />}
   </section>;
 }

@@ -87,6 +87,10 @@ export async function POST(request: Request) {
       'INSERT INTO wrong_questions (study_result_id, subject_id, unit, topic, image_key, analysis, created_at) SELECT ?, ?, ?, ?, ?, ?, ? WHERE ? IS NULL OR (SELECT COUNT(*) FROM wrong_questions WHERE study_result_id = ?) < (SELECT wrong + blank FROM study_results WHERE id = ?)',
     ).bind(studyResultId, subjectId, unit, topic, imageKey, analysis, new Date().toISOString(), studyResultId, studyResultId, studyResultId).run();
     if (!inserted.meta.changes) { await env.UPLOADS.delete(imageKey); return NextResponse.json({ error: 'Bu çalışma için fotoğraf sınırına ulaşıldı.' }, { status: 409 }); }
+    const thumbnail = form.get('thumbnail');
+    if (thumbnail instanceof File && thumbnail.type === 'image/jpeg' && thumbnail.size <= 100 * 1024) {
+      try { await env.UPLOADS.put(imageKey + '/thumbnail', await thumbnail.arrayBuffer(), { httpMetadata: { contentType: 'image/jpeg' } }); } catch { /* Önizleme hatası asıl soru kaydını engellemez. */ }
+    }
     const count = studyResultId ? await env.DB.prepare('SELECT COUNT(*) AS count FROM wrong_questions WHERE study_result_id = ?').bind(studyResultId).first<{ count: number }>() : null;
     return NextResponse.json({ saved: true, analysis, analysisStatus, count: count?.count });
   } catch (error) {

@@ -5,6 +5,7 @@ import { BookPicker } from '@/components/book-picker';
 import { lgsCurriculum } from '@/lib/lgs-curriculum';
 import type { Assignment } from '@/components/coach-workspace';
 import { QuestionPhotoEditor } from '@/components/question-photo-editor';
+import { questionThumbnail } from '@/lib/question-thumbnail';
 export type QuestionContext = Pick<Assignment, 'subjectId' | 'book' | 'unit' | 'topic'>;
 export function WrongQuestionModal({
   open,
@@ -90,6 +91,8 @@ export function WrongQuestionModal({
       form.append(key, value);
     if (studyResultId) form.append('studyResultId', String(studyResultId));
     try {
+      const thumbnail = await questionThumbnail(file);
+      if (thumbnail) form.append('thumbnail', thumbnail, 'thumbnail.jpg');
       const response = await fetch('/api/wrong-questions', {
         method: 'POST',
         body: form,
