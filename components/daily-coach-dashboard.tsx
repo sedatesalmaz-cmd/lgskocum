@@ -45,6 +45,8 @@ export function DailyCoachDashboard({
     ),
   );
   const [results, setResults] = useState<StudyResult[]>([]),
+    [summaryPicker, setSummaryPicker] = useState(false),
+    [summaryDate, setSummaryDate] = useState(''),
     [summary, setSummary] = useState(''),
     [notice, setNotice] = useState(false),
     [loading, setLoading] = useState(false);
@@ -123,18 +125,30 @@ export function DailyCoachDashboard({
   };
   const createSummary = async () => {
     setLoading(true);
+    setSummary('');
     try {
+      const response = await fetch(`/api/study-results?from=${windowStart}&to=${date}`);
+      if (!response.ok) throw new Error('Çalışmalar alınamadı.');
+      const fresh = await response.json() as { results?: StudyResult[] };
+      const entered = new Set((fresh.results ?? []).map(x => x.assignmentId));
+      const missingCount = assignments.filter(x => x.dueDate >= windowStart && x.dueDate <= date && !entered.has(x.id)).length;
       const r = await fetch('/api/daily-summary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           date,
           planned: target,
-          missing: pending.length,
+          missing: missingCount,
         }),
       });
-      const d = (await r.json()) as { summary?: string };
+      const d = (await r.json()) as { summary?: string; error?: string };
+      if (!r.ok) throw new Error(d.error || 'Özet oluşturulamadı.');
       setSummary(d.summary ?? 'Özet oluşturulamadı.');
+      setSummaryDate(date);
+      setSummaryPicker(false);
+    } catch (error) {
+      setSummary(error instanceof Error ? error.message : 'Özet oluşturulamadı.');
+      setSummaryDate(date);
     } finally {
       setLoading(false);
     }
@@ -352,17 +366,27 @@ export function DailyCoachDashboard({
         </article>
       </section>
       <section className="coach-actions">
-        <button onClick={createSummary} disabled={loading}>
+        <button onClick={() => setSummaryPicker(x => !x)} disabled={loading} aria-expanded={summaryPicker}>
           <Sparkles /> {loading ? 'Özet hazırlanıyor…' : 'Gün özeti oluştur'}
         </button>
         <button className={notice ? 'enabled' : ''} onClick={enable}>
           <Bell /> {notice ? 'Bildirimler açık' : 'Masaüstü bildirimini aç'}
         </button>
       </section>
+      {summaryPicker && <section className="coach-card" style={{ padding: 24 }}>
+        <label className="coach-date">
+          <CalendarDays /> <span>Özet tarihi</span>
+          <input type="date" value={date} disabled={loading} onChange={e => { setDate(e.target.value); setSummary(''); }} />
+        </label>
+        <div className="coach-actions">
+          <button onClick={createSummary} disabled={loading || !date}><Sparkles />{loading ? 'Özet hazırlanıyor…' : 'Seçilen günün özetini oluştur'}</button>
+          <button onClick={() => setSummaryPicker(false)} disabled={loading}>Vazgeç</button>
+        </div>
+      </section>}
       {summary && (
         <section className="coach-card day-summary">
           <p className="eyebrow tealtext">GÜN ÖZETİ</p>
-          <h2>Koç değerlendirmesi</h2>
+          <h2>{summaryDate ? new Date(`${summaryDate}T12:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : ''} · Koç değerlendirmesi</h2>
           <p>{summary}</p>
         </section>
       )}
