@@ -11,6 +11,19 @@ function toBase64(buffer: ArrayBuffer) {
   return btoa(binary);
 }
 
+export async function GET(request: Request) {
+  try {
+    await requireMember(request, env.DB, ['student', 'guardian', 'coach']);
+    const id = Number(new URL(request.url).searchParams.get('studyResultId'));
+    const result = await env.DB.prepare('SELECT wrong + blank AS photo_limit, (SELECT COUNT(*) FROM wrong_questions WHERE study_result_id = study_results.id) AS photo_count FROM study_results WHERE id = ?').bind(id).first<{ photo_limit: number; photo_count: number }>();
+    if (!result) return NextResponse.json({ error: 'Çalışma bulunamadı.' }, { status: 404 });
+    return NextResponse.json({ count: result.photo_count, limit: result.photo_limit });
+  } catch (error) {
+    if (error instanceof Response) return NextResponse.json({ error: await error.text() }, { status: error.status });
+    return NextResponse.json({ error: 'Fotoğraf adedi alınamadı.' }, { status: 500 });
+  }
+}
+
 export async function POST(request: Request) {
   try {
     await requireMember(request, env.DB, ['student', 'guardian', 'coach']);
@@ -27,9 +40,11 @@ export async function POST(request: Request) {
     const subjectId = String(form.get('subjectId') || '');
     const unit = String(form.get('unit') || '');
     const topic = String(form.get('topic') || '');
-    const answer = String(form.get('answer') || '');
-    const correctAnswer = String(form.get('correctAnswer') || '');
     const studyResultId = Number(form.get('studyResultId')) || null;
+    if (studyResultId) {
+      const result = await env.DB.prepare('SELECT wrong + blank AS photo_limit, (SELECT COUNT(*) FROM wrong_questions WHERE study_result_id = study_results.id) AS photo_count FROM study_results WHERE id = ?').bind(studyResultId).first<{ photo_limit: number; photo_count: number }>();
+      if (!result || result.photo_count >= result.photo_limit) return NextResponse.json({ error: 'Bu çalışmanın yanlış ve boş soruları için tüm fotoğraflar kaydedilmiş.' }, { status: 409 });
+    }
     if (!subject || !subjectId || (subjectId !== 'paragraf' && (!unit || !topic)))
       return NextResponse.json({ error: 'Ders, ünite ve konu bilgileri eksik.' }, { status: 400 });
 
@@ -47,7 +62,7 @@ export async function POST(request: Request) {
             headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
             body: JSON.stringify({
               contents: [{ parts: [
-                { text: `Anonim LGS yanlış sorusu. Ders: ${subject}; ünite: ${unit || 'yok'}; konu: ${topic || 'yok'}; verilen cevap: ${answer || 'yok'}; doğru cevap: ${correctAnswer || 'yok'}. Kişisel bilgi görürsen analiz yapma. Aksi halde 120 kelimeyi aşmadan soru türü, olası hata nedeni, kısa çözüm yaklaşımı ve benzer soruda dikkat edilecek noktayı yaz.` },
+                { text: `Anonim LGS yanlış veya boş sorusu. Ders: ${subject}; ünite: ${unit || 'yok'}; konu: ${topic || 'yok'}. Öğrencinin cevabı bilinmiyor; kesin hata nedeni uydurma. Kişisel bilgi görürsen analiz yapma. Aksi halde 120 kelimeyi aşmadan soru türü, olası zorlanma noktası, kısa çözüm yaklaşımı ve benzer soruda dikkat edilecek noktayı yaz.` },
                 { inline_data: { mime_type: image.type, data: toBase64(buffer) } },
               ] }],
               generationConfig: { temperature: 0.2, maxOutputTokens: 350 },
@@ -55,7 +70,7 @@ export async function POST(request: Request) {
           },
         );
         if (response.ok) {
-          const data = await response.json();
+          const data = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
           analysis = data.candidates?.[0]?.content?.parts
             ?.map((part: { text?: string }) => part.text ?? '')
             .join('').trim() || null;
@@ -68,10 +83,12 @@ export async function POST(request: Request) {
 
     const imageKey = `wrong-questions/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}`;
     await env.UPLOADS.put(imageKey, buffer, { httpMetadata: { contentType: image.type } });
-    await env.DB.prepare(
-      'INSERT INTO wrong_questions (study_result_id, subject_id, unit, topic, image_key, analysis, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    ).bind(studyResultId, subjectId, unit, topic, imageKey, analysis, new Date().toISOString()).run();
-    return NextResponse.json({ saved: true, analysis, analysisStatus });
+    const inserted = await env.DB.prepare(
+      'INSERT INTO wrong_questions (study_result_id, subject_id, unit, topic, image_key, analysis, created_at) SELECT ?, ?, ?, ?, ?, ?, ? WHERE ? IS NULL OR (SELECT COUNT(*) FROM wrong_questions WHERE study_result_id = ?) < (SELECT wrong + blank FROM study_results WHERE id = ?)',
+    ).bind(studyResultId, subjectId, unit, topic, imageKey, analysis, new Date().toISOString(), studyResultId, studyResultId, studyResultId).run();
+    if (!inserted.meta.changes) { await env.UPLOADS.delete(imageKey); return NextResponse.json({ error: 'Bu çalışma için fotoğraf sınırına ulaşıldı.' }, { status: 409 }); }
+    const count = studyResultId ? await env.DB.prepare('SELECT COUNT(*) AS count FROM wrong_questions WHERE study_result_id = ?').bind(studyResultId).first<{ count: number }>() : null;
+    return NextResponse.json({ saved: true, analysis, analysisStatus, count: count?.count });
   } catch (error) {
     if (error instanceof Response)
       return NextResponse.json({ error: await error.text() }, { status: error.status });

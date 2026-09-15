@@ -1,9 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Camera, Check, ImagePlus, RotateCcw, Sparkles, X } from 'lucide-react';
+import { Camera, Check, ImagePlus, Sparkles, X } from 'lucide-react';
 import { BookPicker } from '@/components/book-picker';
 import { lgsCurriculum } from '@/lib/lgs-curriculum';
 import type { Assignment } from '@/components/coach-workspace';
+import { QuestionPhotoEditor } from '@/components/question-photo-editor';
+export type QuestionContext = Pick<Assignment, 'subjectId' | 'book' | 'unit' | 'topic'>;
 export function WrongQuestionModal({
   open,
   onClose,
@@ -12,20 +14,19 @@ export function WrongQuestionModal({
 }: {
   open: boolean;
   onClose: () => void;
-  assignment?: Assignment | null;
+  assignment?: QuestionContext | null;
   studyResultId?: number | null;
 }) {
   const [file, setFile] = useState<File | null>(null),
     [preview, setPreview] = useState(''),
     [subjectId, setSubjectId] = useState('matematik'),
     [book, setBook] = useState(''),
-    [answer, setAnswer] = useState(''),
-    [correctAnswer, setCorrectAnswer] = useState(''),
     [analysis, setAnalysis] = useState(''),
     [saved, setSaved] = useState(false),
     [analysisAvailable, setAnalysisAvailable] = useState(false),
     [error, setError] = useState('');
-  const [rotation, setRotation] = useState(0),
+  const [savedCount, setSavedCount] = useState(0),
+    [photoLimit, setPhotoLimit] = useState<number | null>(null),
     [consent, setConsent] = useState(false),
     [loading, setLoading] = useState(false);
   const subject = lgsCurriculum.find((x) => x.id === subjectId)!;
@@ -49,12 +50,16 @@ export function WrongQuestionModal({
     setAnalysis('');
     setAnalysisAvailable(false);
     setError('');
+    setFile(null); setConsent(false); setSavedCount(0); setPhotoLimit(null);
+    if (studyResultId) fetch(`/api/wrong-questions?studyResultId=${studyResultId}`).then(async r => { const data = await r.json() as { count?: number; limit: number; error?: string }; if (!r.ok) throw new Error(data.error); return data; }).then(data => {
+      if (typeof data.count === 'number') { setSavedCount(data.count); setPhotoLimit(data.limit); }
+    }).catch(() => setError('Fotoğraf adedi alınamadı. Tekrar açmayı deneyin.'));
     if (!assignment) return;
     setSubjectId(assignment.subjectId);
     setBook(assignment.book === 'Kitap belirtilmedi' ? '' : assignment.book);
     setUnitName(assignment.unit);
     setTopic(assignment.topic);
-  }, [open, assignment]);
+  }, [open, assignment, studyResultId]);
   if (!open) return null;
   const chooseSubject = (id: string) => {
     const next = lgsCurriculum.find((x) => x.id === id)!;
@@ -69,7 +74,7 @@ export function WrongQuestionModal({
     setTopic(next.topics[0]);
   };
   const submit = async () => {
-    if (!file || !consent) return;
+    if (!file || !consent || (photoLimit !== null && savedCount >= photoLimit)) return;
     setLoading(true);
     setError('');
     const form = new FormData();
@@ -77,11 +82,9 @@ export function WrongQuestionModal({
     for (const [key, value] of Object.entries({
       subjectId,
       subject: subject.name,
-      unit: isParagraph ? '' : unit?.name ?? '',
+      unit: isParagraph ? '' : unitName,
       topic: isParagraph ? '' : topic,
       book: book || 'Kitap belirtilmedi',
-      answer,
-      correctAnswer,
       privacyConfirmed: 'true',
     }))
       form.append(key, value);
@@ -91,11 +94,12 @@ export function WrongQuestionModal({
         method: 'POST',
         body: form,
       });
-      const data = await response.json();
+      const data = await response.json() as { error?: string; analysis?: string; analysisStatus?: string; count?: number };
       if (!response.ok) throw new Error(data.error || 'Soru kaydedilemedi.');
       setAnalysis(data.analysis ?? '');
       setAnalysisAvailable(data.analysisStatus === 'completed');
       setSaved(true);
+      setSavedCount(data.count ?? savedCount + 1);
     } catch (reason) {
       setError(
         reason instanceof Error ? reason.message : 'Soru kaydedilemedi.',
@@ -120,6 +124,7 @@ export function WrongQuestionModal({
           <div>
             <p className="eyebrow tealtext">YANLIŞ DEFTERİM</p>
             <h2>Takıldığın soruyu ekle</h2>
+            {photoLimit !== null && <p>{savedCount} / {photoLimit} soru fotoğrafı kaydedildi · yanlış + boş</p>}
           </div>
         </div>
         {saved ? (
@@ -141,17 +146,17 @@ export function WrongQuestionModal({
             <button onClick={onClose}>
               <Check /> Yanlış defterine kaydedildi
             </button>
+            {(photoLimit === null || savedCount < photoLimit) && <button onClick={() => { setSaved(false); setFile(null); setConsent(false); }}>Sonraki sorunun fotoğrafını ekle{photoLimit !== null ? ` (${photoLimit - savedCount} kaldı)` : ''}</button>}
           </div>
         ) : (
           <>
             <div className="wrong-upload-grid">
               <div>
-                <label className="photo-drop">
+                {preview ? <QuestionPhotoEditor src={preview} onChange={next => { setFile(next); setConsent(false); }} /> : <label className="photo-drop">
                   {preview ? (
                     <img
                       src={preview}
                       alt="Seçilen yanlış soru"
-                      style={{ transform: `rotate(${rotation}deg)` }}
                     />
                   ) : (
                     <>
@@ -166,15 +171,8 @@ export function WrongQuestionModal({
                     capture="environment"
                     onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   />
-                </label>
-                {preview && (
-                  <button
-                    className="rotate-photo"
-                    onClick={() => setRotation((x) => (x + 90) % 360)}
-                  >
-                    <RotateCcw /> Döndür
-                  </button>
-                )}
+                </label>}
+                {preview && <button className="rotate-photo" onClick={() => { setFile(null); setConsent(false); }}>Başka fotoğraf seç</button>}
               </div>
               <div className="wrong-fields">
                 <label>
@@ -196,32 +194,18 @@ export function WrongQuestionModal({
                 </label>
                 {!isParagraph && <label>
                   Ünite
-                  <select value={unit?.name ?? ''} onChange={(e) => chooseUnit(e.target.value)}>
+                  <select value={unitName} onChange={(e) => chooseUnit(e.target.value)}>
+                    {!subject.units.some(x => x.name === unitName) && <option>{unitName}</option>}
                     {subject.units.map((x) => <option key={x.name}>{x.name}</option>)}
                   </select>
                 </label>}
                 {!isParagraph && <label>
                   Konu
                   <select value={topic} onChange={(e) => setTopic(e.target.value)}>
+                    {!unit?.topics.includes(topic) && <option>{topic}</option>}
                     {unit?.topics.map((x) => <option key={x}>{x}</option>)}
                   </select>
                 </label>}
-                <label>
-                  Benim cevabım
-                  <input
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    placeholder="Örn. B"
-                  />
-                </label>
-                <label>
-                  Doğru cevap
-                  <input
-                    value={correctAnswer}
-                    onChange={(e) => setCorrectAnswer(e.target.value)}
-                    placeholder="Örn. D"
-                  />
-                </label>
               </div>
             </div>
             <label className="privacy-check">
@@ -236,9 +220,10 @@ export function WrongQuestionModal({
               </span>
             </label>
             {error && <p className="entry-error">{error}</p>}
+            {photoLimit !== null && savedCount >= photoLimit && <p className="entry-success">Bu çalışmanın tüm soru fotoğrafları kaydedildi.</p>}
             <button
               className="analyze-question"
-              disabled={!file || !consent || loading}
+              disabled={!file || !consent || loading || (!!studyResultId && photoLimit === null) || (photoLimit !== null && savedCount >= photoLimit)}
               onClick={submit}
             >
               <Sparkles />

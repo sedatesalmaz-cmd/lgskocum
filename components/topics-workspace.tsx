@@ -24,7 +24,7 @@ type Entry = {
   blank: number;
 };
 
-export function TopicsWorkspace({ onWrong }: { onWrong?: () => void }) {
+export function TopicsWorkspace({ onWrong }: { onWrong?: (context: { subjectId: string; book: string; unit: string; topic: string }, id: number) => void }) {
   const [subjectId, setSubjectId] = useState('matematik');
   const subject = lgsCurriculum.find((item) => item.id === subjectId)!;
   const isParagraph = subjectId === 'paragraf';
@@ -143,7 +143,7 @@ export function TopicsWorkspace({ onWrong }: { onWrong?: () => void }) {
         ...current,
       ]);
       setMessage('Çalışma kaydedildi. Günlük ve haftalık raporlara eklendi.');
-      if (wrong > 0) onWrong?.();
+      if (wrong + blank > 0 && data.id) onWrong?.({ subjectId, book, unit: isParagraph ? '' : unit!.name, topic: isParagraph ? '' : topic }, data.id);
     } catch {
       setMessage('Çalışma kaydedilemedi. Lütfen tekrar deneyin.');
     } finally {
@@ -353,6 +353,7 @@ export function TopicsWorkspace({ onWrong }: { onWrong?: () => void }) {
               <em>
                 {entry.correct}D · {entry.wrong}Y · {entry.blank}B
               </em>
+              {entry.wrong + entry.blank > 0 && <button onClick={() => onWrong?.({ subjectId, book: entry.book, unit: entry.unit, topic: entry.topic }, entry.id)}>Soru fotoğrafları</button>}
             </article>
           ))}
         </section>

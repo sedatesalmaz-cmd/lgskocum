@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import { TopicsWorkspace } from '@/components/topics-workspace';
 import { CoachWorkspace, type Assignment } from '@/components/coach-workspace';
-import { WrongQuestionModal } from '@/components/wrong-question-modal';
+import { WrongQuestionModal, type QuestionContext } from '@/components/wrong-question-modal';
 import { ProgressDashboard } from '@/components/progress-dashboard';
 import { QuestionCatalog } from '@/components/question-catalog';
 import { AdminPanel } from '@/components/admin-panel';
@@ -73,7 +73,7 @@ export default function Home() {
   const [session, setSession] = useState<UserSession | null>(null);
   const [wrongOpen, setWrongOpen] = useState(false);
   const [wrongContext, setWrongContext] = useState<{
-    assignment: Assignment;
+    assignment: QuestionContext;
     studyResultId: number;
   } | null>(null);
   const [view, setView] = useState<'student' | 'adult'>('student');
@@ -103,7 +103,7 @@ export default function Home() {
     setStudyResults({});
   };
   const openWrongQuestion = (
-    assignment?: Assignment,
+    assignment?: QuestionContext,
     studyResultId?: number,
   ) => {
     setWrongContext(
@@ -361,7 +361,7 @@ export default function Home() {
           />
         ) : view === 'student' ? (
           section === 'topics' ? (
-            <TopicsWorkspace onWrong={() => openWrongQuestion()} />
+            <TopicsWorkspace onWrong={(context, id) => openWrongQuestion(context, id)} />
           ) : (
             <div className="page student-visual">
               <div className="welcome student-welcome">
@@ -804,7 +804,7 @@ export default function Home() {
             const assignment = selectedAssignment;
             setStudyResults((x) => ({ ...x, [result.assignmentId]: result }));
             setSelectedAssignment(null);
-            if (result.wrong > 0)
+            if (result.wrong + result.blank > 0)
               openWrongQuestion(assignment, result.id);
           }}
         />
