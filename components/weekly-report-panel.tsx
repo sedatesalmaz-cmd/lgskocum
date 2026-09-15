@@ -1,4 +1,5 @@
 'use client';
+import '@/app/weekly-report-fixes.css';
 import { useCallback, useEffect, useState } from 'react';
 import { BarChart3, CheckCircle2, Sparkles } from 'lucide-react';
 import { lgsCurriculum } from '@/lib/lgs-curriculum';
@@ -57,7 +58,7 @@ export function WeeklyReportPanel() {
       <p className="eyebrow">HAFTALIK DEĞERLENDİRME · {data ? totals.solved ? 'GÜNCEL VERİLER' : 'HENÜZ GİRİŞ YOK' : 'YÜKLENİYOR'}</p>
       <h2>Hafta bir bakışta</h2>
     </div></div>
-    <label className="coach-date">Haftadan bir gün seç
+    <label className="weekly-report-date"><span>Haftadan bir gün seç</span>
       <input type="date" value={date} disabled={loading} onChange={e => { if (e.target.value) setDate(e.target.value); }} />
     </label>
     <p>{format(weekStart)} – {format(weekEnd)} · Pazartesi–Pazar</p>

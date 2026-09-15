@@ -1,0 +1,10 @@
+.weekly-ai-card .coach-kpis article { color: #27233e; min-width: 0; }
+.weekly-ai-card .coach-kpis b { color: #27233e; }
+.weekly-ai-card .coach-kpis .success b { color: #218d89; }
+.weekly-ai-card .coach-kpis span,
+.weekly-ai-card .coach-kpis small { font-size: 14px; }
+.weekly-report-date { display: flex; flex-direction: column; gap: 8px; width: 290px; max-width: 100%; margin-top: 20px; color: #fff; font-size: 14px; font-weight: 700; }
+.weekly-ai-card .weekly-report-date input { width: 100%; min-width: 0; height: 48px; padding: 10px 14px; background: #fff; color: #27233e; border: 1px solid #d8d3e8; border-radius: 12px; font: inherit; color-scheme: light; }
+.weekly-ai-card .weekly-report-date input:focus-visible { outline: 3px solid #f8c65e; outline-offset: 3px; }
+.weekly-ai-card > .branch-reports p { color: #eee8ff; font-size: 14px; }
+.weekly-ai-card .branch-reports summary { font-size: 14px; }
